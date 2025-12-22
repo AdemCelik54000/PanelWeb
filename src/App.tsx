@@ -1,6 +1,6 @@
 function App() {
   return (
-    <div className="min-h-screen bg-black">
+    <div className="bg-black" style={{ height: "100svh" }}>
       <p
         style={{
           position: "absolute",

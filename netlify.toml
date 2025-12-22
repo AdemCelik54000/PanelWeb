@@ -5,15 +5,17 @@
 [[redirects]]
   from = "/"
   to = "/upload.html"
-  status = 301
+  status = 200
   force = true
 
 [[redirects]]
   from = "/upload"
   to = "/upload.html"
   status = 200
+  force = true
 
 [[redirects]]
   from = "/upload/"
   to = "/upload.html"
   status = 200
+  force = true
