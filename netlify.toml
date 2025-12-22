@@ -1,0 +1,13 @@
+[build]
+  command = "npm run build"
+  publish = "dist"
+
+[[redirects]]
+  from = "/"
+  to = "/upload.html"
+  status = 301
+
+[[redirects]]
+  from = "/upload"
+  to = "/upload.html"
+  status = 200
