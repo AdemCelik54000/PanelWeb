@@ -394,7 +394,7 @@
       }
 
       async function uploadFiles(files) {
-        const maxFileSize = 25000000;
+        const maxFileSize = 120000000;
         let uploadedCount = 0;
         let skippedCount = 0;
         let lastError = "";
@@ -413,8 +413,6 @@
           formData.append("file", file);
           formData.append("upload_preset", CLOUDINARY_CONFIG.uploadPreset);
           formData.append("folder", state.currentFolder);
-          formData.append("use_filename", "true");
-          formData.append("unique_filename", "false");
 
           try {
             const response = await fetch(
