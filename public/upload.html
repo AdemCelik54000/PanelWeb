@@ -349,7 +349,7 @@
       function selectUploadTarget(label, folder) {
         const fullFolder = `celik-portfolio/${folder}`;
         state.currentLabel = label;
-        state.currentFolder = folder;
+        state.currentFolder = fullFolder;
         uploadTitle.textContent = label;
         selectedPath.textContent = fullFolder;
         showView("upload");
@@ -373,6 +373,8 @@
             cloudName: CLOUDINARY_CONFIG.cloudName,
             uploadPreset: CLOUDINARY_CONFIG.uploadPreset,
             folder: state.currentFolder,
+            useFilename: true,
+            uniqueFilename: false,
             sources: ["camera", "local"],
             multiple: true,
             maxFiles: 15,
