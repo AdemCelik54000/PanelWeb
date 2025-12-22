@@ -342,14 +342,14 @@
           return;
         }
         const folder = `${category.folder}/${subcategory.folder}`;
-        const label = `${category.label} · ${subcategory.label}`;
+        const label = `${category.label} / ${subcategory.label}`;
         selectUploadTarget(label, folder);
       }
 
       function selectUploadTarget(label, folder) {
         const fullFolder = `celik-portfolio/${folder}`;
         state.currentLabel = label;
-        state.currentFolder = folder;
+        state.currentFolder = fullFolder;
         uploadTitle.textContent = label;
         selectedPath.textContent = fullFolder;
         showView("upload");
