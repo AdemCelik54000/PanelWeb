@@ -6,6 +6,7 @@
   from = "/"
   to = "/upload.html"
   status = 301
+  force = true
 
 [[redirects]]
   from = "/upload"
