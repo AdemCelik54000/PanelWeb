@@ -1,14 +1,14 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="fr">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Upload photos chantier</title>
-    <meta name="theme-color" content="#0f172a" />
+    <meta name="theme-color" content="#000000" />
     <link rel="manifest" href="/manifest.webmanifest" />
     <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black" />
     <script src="https://widget.cloudinary.com/v2.0/global/all.js" type="text/javascript"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -18,8 +18,8 @@
     />
     <style>
       :root {
-        --bg-1: #0f172a;
-        --bg-2: #102a43;
+        --bg-1: #000000;
+        --bg-2: #000000;
         --card: #f8fafc;
         --ink: #0f172a;
         --muted: #475569;
@@ -36,20 +36,38 @@
         padding: 0;
       }
 
+      html,
+      body {
+        height: 100%;
+        overscroll-behavior: none;
+        background: #000000;
+        background-color: #000000;
+      }
+
       body {
         font-family: "Manrope", system-ui, sans-serif;
         color: var(--ink);
-        min-height: 100vh;
-        background: radial-gradient(120% 120% at 10% 10%, #1d4ed8 0%, transparent 45%),
-          radial-gradient(120% 120% at 90% 10%, #f97316 0%, transparent 40%),
-          linear-gradient(135deg, var(--bg-1), var(--bg-2));
-        padding: 24px 16px 40px;
+        min-height: 100svh;
+        overflow: hidden;
+        position: fixed;
+        inset: 0;
       }
 
       .shell {
         max-width: 560px;
         margin: 0 auto;
         position: relative;
+        height: 100svh;
+        overflow-y: auto;
+        overscroll-behavior: contain;
+        -webkit-overflow-scrolling: touch;
+        padding: calc(24px + env(safe-area-inset-top)) 16px
+          calc(40px + env(safe-area-inset-bottom));
+        scrollbar-width: none;
+      }
+
+      .shell::-webkit-scrollbar {
+        display: none;
       }
 
       header {
@@ -221,6 +239,13 @@
         <button class="btn btn-upload" type="button" id="uploadButton">
           Ajouter une photo
         </button>
+        <input
+          id="fileInput"
+          type="file"
+          accept="image/jpeg,image/png,image/webp,image/heic,image/heif"
+          multiple
+          class="hidden"
+        />
         <div class="helper">Formats acceptés: jpg, jpeg, png, webp.</div>
         <div class="status" id="statusMessage" aria-live="polite"></div>
       </section>
@@ -298,6 +323,8 @@
       const uploadTitle = document.getElementById("uploadTitle");
       const selectedPath = document.getElementById("selectedPath");
       const statusMessage = document.getElementById("statusMessage");
+      const fileInput = document.getElementById("fileInput");
+      const uploadButton = document.getElementById("uploadButton");
 
       function renderCategories() {
         categoryButtons.innerHTML = "";
@@ -362,50 +389,77 @@
 
       function openUploadWidget() {
         if (!state.currentFolder) {
-          statusMessage.textContent = "Sélectionnez d'abord un dossier.";
+          statusMessage.textContent = "Selectionnez d'abord un dossier.";
           return;
         }
 
-        if (!window.cloudinary) {
-          statusMessage.textContent = "Le widget d'upload Cloudinary n'est pas disponible.";
-          return;
+        if (fileInput) {
+          fileInput.value = "";
+          fileInput.click();
         }
+      }
 
+      async function uploadFiles(files) {
+        const maxFileSize = 25000000;
         let uploadedCount = 0;
+        let skippedCount = 0;
+        let lastError = "";
 
-        window.cloudinary.openUploadWidget(
-          {
-            cloudName: CLOUDINARY_CONFIG.cloudName,
-            uploadPreset: CLOUDINARY_CONFIG.uploadPreset,
-            folder: state.currentFolder,
-            sources: ["camera", "local"],
-            multiple: true,
-            maxFiles: 15,
-            clientAllowedFormats: ["jpg", "jpeg", "png", "webp"],
-            maxFileSize: 10000000,
-            cropping: false,
-            language: "fr",
-          },
-          (error, result) => {
-            if (error) {
-              statusMessage.textContent = "Erreur d'upload. Réessayez.";
-              return;
-            }
+        uploadButton.disabled = true;
+        uploadButton.textContent = "Upload en cours...";
+        statusMessage.textContent = "";
 
-            if (result && result.event === "success") {
-              uploadedCount += 1;
-            }
-
-            if (result && result.event === "close") {
-              if (uploadedCount > 0) {
-                statusMessage.textContent = `${uploadedCount} photo(s) ajoutée(s) avec succès.`;
-                showView("category");
-              } else {
-                statusMessage.textContent = "";
-              }
-            }
+        for (const file of files) {
+          if (file.size > maxFileSize) {
+            skippedCount += 1;
+            continue;
           }
-        );
+
+          const formData = new FormData();
+          formData.append("file", file);
+          formData.append("upload_preset", CLOUDINARY_CONFIG.uploadPreset);
+          formData.append("folder", state.currentFolder);
+          formData.append("use_filename", "true");
+          formData.append("unique_filename", "false");
+
+          try {
+            const response = await fetch(
+              `https://api.cloudinary.com/v1_1/${CLOUDINARY_CONFIG.cloudName}/image/upload`,
+              { method: "POST", body: formData }
+            );
+
+            if (!response.ok) {
+              try {
+                const data = await response.json();
+                lastError = data?.error?.message || "Upload error";
+              } catch (parseError) {
+                lastError = "Upload error";
+              }
+              skippedCount += 1;
+              continue;
+            }
+
+            uploadedCount += 1;
+          } catch (error) {
+            skippedCount += 1;
+          }
+        }
+
+        uploadButton.disabled = false;
+        uploadButton.textContent = "Ajouter une photo";
+
+        if (uploadedCount > 0) {
+          statusMessage.textContent = `${uploadedCount} photo(s) ajoutee(s) avec succes.`;
+          if (skippedCount > 0) {
+            statusMessage.textContent += ` ${skippedCount} fichier(s) ignores.`;
+          }
+          showView("category");
+        } else if (skippedCount > 0) {
+          const detail = lastError ? ` (${lastError})` : "";
+          statusMessage.textContent = `Aucune photo envoyee. Fichiers trop lourds ou erreurs.${detail}`;
+        } else {
+          statusMessage.textContent = "";
+        }
       }
 
       document.getElementById("backToCategories").addEventListener("click", () => {
@@ -420,9 +474,18 @@
         }
       });
 
-      document.getElementById("uploadButton").addEventListener("click", openUploadWidget);
+      uploadButton.addEventListener("click", openUploadWidget);
+
+      fileInput.addEventListener("change", (event) => {
+        const files = Array.from(event.target.files || []);
+        if (!files.length) {
+          return;
+        }
+        uploadFiles(files);
+      });
 
       renderCategories();
     </script>
   </body>
 </html>
+
