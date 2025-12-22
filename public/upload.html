@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ajouter des photos - Celik Portfolio</title>
+    <script src="https://upload-widget.cloudinary.com/global/all.js" type="text/javascript"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #1e40af 0%, #0369a1 100%);
+            min-height: 100vh;
+            padding: 20px;
+            color: #333;
+        }
+
+        .container {
+            max-width: 500px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+
+        .header p {
+            font-size: 16px;
+            opacity: 0.9;
+        }
+
+        .card {
+            background: white;
+            border-radius: 16px;
+            padding: 24px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+        }
+
+        .breadcrumb {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 20px;
+            font-size: 14px;
+            color: #666;
+        }
+
+        .breadcrumb-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .breadcrumb-separator {
+            color: #999;
+        }
+
+        .back-button {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: #f3f4f6;
+            border: none;
+            padding: 10px 16px;
+            border-radius: 8px;
+            font-size: 15px;
+            font-weight: 500;
+            color: #374151;
+            cursor: pointer;
+            margin-bottom: 20px;
+            transition: all 0.2s;
+        }
+
+        .back-button:active {
+            transform: scale(0.98);
+            background: #e5e7eb;
+        }
+
+        .section-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #1f2937;
+            margin-bottom: 16px;
+        }
+
+        .button-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 12px;
+        }
+
+        .category-button, .subcategory-button {
+            background: linear-gradient(135deg, #1e40af 0%, #1e3a8a 100%);
+            color: white;
+            border: none;
+            padding: 18px 20px;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-align: left;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            box-shadow: 0 4px 12px rgba(30, 64, 175, 0.3);
+        }
+
+        .category-button:active, .subcategory-button:active {
+            transform: scale(0.98);
+            box-shadow: 0 2px 8px rgba(30, 64, 175, 0.3);
+        }
+
+        .subcategory-button {
+            background: linear-gradient(135deg, #0369a1 0%, #0c4a6e 100%);
+            box-shadow: 0 4px 12px rgba(3, 105, 161, 0.3);
+        }
+
+        .upload-button {
+            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+            color: white;
+            border: none;
+            padding: 20px;
+            border-radius: 12px;
+            font-size: 18px;
+            font-weight: 600;
+            cursor: pointer;
+            width: 100%;
+            transition: all 0.2s;
+            box-shadow: 0 4px 12px rgba(17, 153, 142, 0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .upload-button:active {
+            transform: scale(0.98);
+            box-shadow: 0 2px 8px rgba(17, 153, 142, 0.3);
+        }
+
+        .arrow {
+            font-size: 20px;
+        }
+
+        .camera-icon {
+            font-size: 24px;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .selected-path {
+            background: #f0fdf4;
+            border: 2px solid #86efac;
+            padding: 16px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .selected-path-label {
+            font-size: 12px;
+            text-transform: uppercase;
+            font-weight: 600;
+            color: #16a34a;
+            margin-bottom: 6px;
+        }
+
+        .selected-path-value {
+            font-size: 14px;
+            color: #15803d;
+            font-family: monospace;
+        }
+
+        @media (min-width: 768px) {
+            .button-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📸 Ajouter des photos</h1>
+            <p>Sélectionnez une catégorie</p>
+        </div>
+
+        <div id="mainView" class="card">
+            <div class="section-title">Choisissez une catégorie</div>
+            <div class="button-grid">
+                <button class="category-button" onclick="showCategory('finalisations')">
+                    Finalisation
+                    <span class="arrow">→</span>
+                </button>
+                <button class="category-button" onclick="showCategory('fondations')">
+                    Fondation
+                    <span class="arrow">→</span>
+                </button>
+                <button class="category-button" onclick="showCategory('murs-cloisons')">
+                    Mur et cloison
+                    <span class="arrow">→</span>
+                </button>
+                <button class="category-button" onclick="showCategory('dalle-beton')">
+                    Dalle béton
+                    <span class="arrow">→</span>
+                </button>
+                <button class="category-button" onclick="showCategory('renovation')">
+                    Rénovation
+                    <span class="arrow">→</span>
+                </button>
+                <button class="category-button" onclick="showCategory('etancheite-terrassement')">
+                    Étanchéité & Terrassement
+                    <span class="arrow">→</span>
+                </button>
+                <button class="category-button" onclick="showCategory('escalier')">
+                    Escalier
+                    <span class="arrow">→</span>
+                </button>
+            </div>
+        </div>
+
+        <div id="subcategoryView" class="card hidden">
+            <button class="back-button" onclick="showMain()">
+                ← Retour
+            </button>
+            <div class="section-title" id="subcategoryTitle"></div>
+            <div class="button-grid" id="subcategoryButtons"></div>
+        </div>
+
+        <div id="uploadView" class="card hidden">
+            <button class="back-button" onclick="showPrevious()">
+                ← Retour
+            </button>
+            <div class="selected-path">
+                <div class="selected-path-label">Dossier de destination</div>
+                <div class="selected-path-value" id="selectedPath"></div>
+            </div>
+            <button class="upload-button" onclick="openUploadWidget()">
+                <span class="camera-icon">📷</span>
+                Ajouter une photo
+            </button>
+        </div>
+    </div>
+
+    <script>
+        const CLOUDINARY_CONFIG = {
+            cloudName: 'dq7d6rmbp',
+            uploadPreset: 'kgehqzfz'
+        };
+
+        const CATEGORIES = {
+            'finalisations': {
+                name: 'Finalisation',
+                path: 'celik-portfolio/finalisations',
+                hasSubcategories: false
+            },
+            'fondations': {
+                name: 'Fondation',
+                hasSubcategories: true,
+                subcategories: {
+                    'fondations-fouilles': { name: 'Fouille', path: 'celik-portfolio/fondations/fondations-fouilles' },
+                    'fondations-propretes': { name: 'Propreté', path: 'celik-portfolio/fondations/fondations-propretes' },
+                    'fondations-semelles': { name: 'Semelle', path: 'celik-portfolio/fondations/fondations-semelles' },
+                    'fondations-betons': { name: 'Béton', path: 'celik-portfolio/fondations/fondations-betons' },
+                    'fondations-plots': { name: 'Plot', path: 'celik-portfolio/fondations/fondations-plots' },
+                    'fondations-radier': { name: 'Radier', path: 'celik-portfolio/fondations/fondations-radier' },
+                    'fondations-batiments': { name: 'Bâtiment', path: 'celik-portfolio/fondations/fondations-batiments' }
+                }
+            },
+            'murs-cloisons': {
+                name: 'Mur et cloison',
+                path: 'celik-portfolio/murs-cloisons',
+                hasSubcategories: false
+            },
+            'dalle-beton': {
+                name: 'Dalle béton',
+                hasSubcategories: true,
+                subcategories: {
+                    'plancher': { name: 'Plancher', path: 'celik-portfolio/dalle-beton/plancher' },
+                    'sol-beton': { name: 'Sol béton', path: 'celik-portfolio/dalle-beton/sol-beton' }
+                }
+            },
+            'renovation': {
+                name: 'Rénovation',
+                path: 'celik-portfolio/renovation',
+                hasSubcategories: false
+            },
+            'etancheite-terrassement': {
+                name: 'Étanchéité & Terrassement',
+                path: 'celik-portfolio/etancheite-terrassement',
+                hasSubcategories: false
+            },
+            'escalier': {
+                name: 'Escalier',
+                path: 'celik-portfolio/escalier',
+                hasSubcategories: false
+            }
+        };
+
+        let currentCategory = null;
+        let currentPath = null;
+
+        function showMain() {
+            document.getElementById('mainView').classList.remove('hidden');
+            document.getElementById('subcategoryView').classList.add('hidden');
+            document.getElementById('uploadView').classList.add('hidden');
+            currentCategory = null;
+            currentPath = null;
+        }
+
+        function showCategory(categoryKey) {
+            const category = CATEGORIES[categoryKey];
+            currentCategory = categoryKey;
+
+            if (category.hasSubcategories) {
+                document.getElementById('mainView').classList.add('hidden');
+                document.getElementById('subcategoryView').classList.remove('hidden');
+                document.getElementById('uploadView').classList.add('hidden');
+
+                document.getElementById('subcategoryTitle').textContent = category.name;
+
+                const buttonsContainer = document.getElementById('subcategoryButtons');
+                buttonsContainer.innerHTML = '';
+
+                Object.entries(category.subcategories).forEach(([key, sub]) => {
+                    const button = document.createElement('button');
+                    button.className = 'subcategory-button';
+                    button.innerHTML = `${sub.name}<span class="arrow">→</span>`;
+                    button.onclick = () => showUpload(sub.path, `${category.name} → ${sub.name}`);
+                    buttonsContainer.appendChild(button);
+                });
+            } else {
+                showUpload(category.path, category.name);
+            }
+        }
+
+        function showUpload(path, displayName) {
+            currentPath = path;
+
+            document.getElementById('mainView').classList.add('hidden');
+            document.getElementById('subcategoryView').classList.add('hidden');
+            document.getElementById('uploadView').classList.remove('hidden');
+
+            document.getElementById('selectedPath').textContent = path;
+        }
+
+        function showPrevious() {
+            const category = CATEGORIES[currentCategory];
+            if (category && category.hasSubcategories) {
+                showCategory(currentCategory);
+            } else {
+                showMain();
+            }
+        }
+
+        function openUploadWidget() {
+            if (!currentPath) {
+                alert('Erreur: Aucun dossier sélectionné');
+                return;
+            }
+
+            cloudinary.openUploadWidget({
+                cloudName: CLOUDINARY_CONFIG.cloudName,
+                uploadPreset: CLOUDINARY_CONFIG.uploadPreset,
+                folder: currentPath,
+                sources: ['camera', 'local'],
+                multiple: true,
+                maxFiles: 10,
+                clientAllowedFormats: ['jpg', 'jpeg', 'png', 'webp'],
+                maxFileSize: 10000000,
+                cropping: false,
+                language: 'fr',
+                text: {
+                    'fr': {
+                        'or': 'ou',
+                        'back': 'Retour',
+                        'close': 'Fermer',
+                        'upload_complete': 'Upload terminé',
+                        'local.browse': 'Parcourir',
+                        'local.dd_title_single': 'Glissez-déposez une image',
+                        'local.dd_title_multi': 'Glissez-déposez des images',
+                        'camera.capture': 'Prendre une photo'
+                    }
+                },
+                styles: {
+                    palette: {
+                        window: '#FFFFFF',
+                        windowBorder: '#90A0B3',
+                        tabIcon: '#1e40af',
+                        menuIcons: '#5A616A',
+                        textDark: '#000000',
+                        textLight: '#FFFFFF',
+                        link: '#1e40af',
+                        action: '#1e40af',
+                        inactiveTabIcon: '#8E9FBF',
+                        error: '#F44235',
+                        inProgress: '#1e40af',
+                        complete: '#38ef7d',
+                        sourceBg: '#F4F5F7'
+                    }
+                }
+            }, (error, result) => {
+                if (!error && result && result.event === 'success') {
+                    console.log('Upload réussi:', result.info);
+                }
+
+                if (!error && result && result.event === 'close') {
+                    const uploadCount = result.info?.files?.length || 0;
+                    if (uploadCount > 0) {
+                        alert(`✅ ${uploadCount} photo(s) ajoutée(s) avec succès !`);
+                        showMain();
+                    }
+                }
+            });
+        }
+    </script>
+</body>
+</html>
