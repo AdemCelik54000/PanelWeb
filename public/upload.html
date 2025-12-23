@@ -250,6 +250,7 @@
         cloudName: "dq7d6rmbp",
         uploadPreset: "kgehqzfz",
       };
+      const DUPLICATE_CHECK_ENDPOINT = "/.netlify/functions/check-image";
 
       const CATEGORIES = [
         {
@@ -393,15 +394,39 @@
         }
       }
 
+      async function computeSha1(file) {
+        const buffer = await file.arrayBuffer();
+        const digest = await crypto.subtle.digest("SHA-1", buffer);
+        const hashArray = Array.from(new Uint8Array(digest));
+        return hashArray.map((byte) => byte.toString(16).padStart(2, "0")).join("");
+      }
+
+      async function checkDuplicate(hash) {
+        try {
+          const response = await fetch(
+            `${DUPLICATE_CHECK_ENDPOINT}?hash=${encodeURIComponent(hash)}`
+          );
+          if (!response.ok) {
+            return false;
+          }
+          const data = await response.json();
+          return Boolean(data?.exists);
+        } catch (error) {
+          return false;
+        }
+      }
+
       async function uploadFiles(files) {
         const maxFileSize = 120000000;
         let uploadedCount = 0;
         let skippedCount = 0;
+        let duplicateCount = 0;
         let lastError = "";
+        const seenHashes = new Set();
 
         uploadButton.disabled = true;
         uploadButton.textContent = "Upload en cours...";
-        statusMessage.textContent = "";
+        statusMessage.textContent = "Verification des doublons...";
 
         for (const file of files) {
           if (file.size > maxFileSize) {
@@ -409,10 +434,36 @@
             continue;
           }
 
+          let hash = "";
+          try {
+            hash = await computeSha1(file);
+          } catch (error) {
+            hash = "";
+          }
+
+          if (hash) {
+            if (seenHashes.has(hash)) {
+              duplicateCount += 1;
+              continue;
+            }
+            seenHashes.add(hash);
+          }
+
+          if (hash) {
+            const exists = await checkDuplicate(hash);
+            if (exists) {
+              duplicateCount += 1;
+              continue;
+            }
+          }
+
           const formData = new FormData();
           formData.append("file", file);
           formData.append("upload_preset", CLOUDINARY_CONFIG.uploadPreset);
           formData.append("folder", state.currentFolder);
+          if (hash) {
+            formData.append("tags", `sha1_${hash}`);
+          }
 
           try {
             const response = await fetch(
@@ -442,6 +493,9 @@
 
         if (uploadedCount > 0) {
           statusMessage.textContent = `${uploadedCount} photo(s) ajoutee(s) avec succes.`;
+          if (duplicateCount > 0) {
+            statusMessage.textContent += ` ${duplicateCount} doublon(s) detecte(s).`;
+          }
           if (skippedCount > 0) {
             statusMessage.textContent += ` ${skippedCount} fichier(s) ignores.`;
           }
@@ -449,6 +503,8 @@
         } else if (skippedCount > 0) {
           const detail = lastError ? ` (${lastError})` : "";
           statusMessage.textContent = `Aucune photo envoyee. Fichiers trop lourds ou erreurs.${detail}`;
+        } else if (duplicateCount > 0) {
+          statusMessage.textContent = "Aucune photo envoyee. Doublons detectes.";
         } else {
           statusMessage.textContent = "";
         }
