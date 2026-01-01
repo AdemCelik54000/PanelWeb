@@ -244,7 +244,7 @@
         overflow: hidden;
         background: #e2e8f0;
         aspect-ratio: 1 / 1;
-        touch-action: pan-y;
+        touch-action: manipulation;
         box-shadow: 0 8px 18px rgba(15, 23, 42, 0.16);
       }
 
@@ -253,11 +253,35 @@
         height: 100%;
         object-fit: cover;
         display: block;
+        pointer-events: none;
+        user-select: none;
+        -webkit-user-select: none;
+        -webkit-touch-callout: none;
       }
 
       .order-item.dragging {
         opacity: 0.55;
         transform: scale(0.96);
+      }
+
+      .order-placeholder {
+        border: 2px dashed rgba(15, 23, 42, 0.25);
+        background: rgba(15, 23, 42, 0.04);
+        box-shadow: none;
+      }
+
+      .drag-ghost {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 96px;
+        height: 96px;
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 18px 40px rgba(15, 23, 42, 0.35);
+        z-index: 9999;
+        pointer-events: none;
+        transform: translate(-50%, -50%);
       }
 
       .order-index {
@@ -871,6 +895,8 @@
         pointerId: null,
         longPressTimer: null,
         draggingEl: null,
+        placeholderEl: null,
+        ghostEl: null,
         startX: 0,
         startY: 0,
         active: false,
@@ -887,12 +913,48 @@
           dragState.draggingEl.classList.remove("dragging");
         }
         dragState.draggingEl = null;
+        if (dragState.placeholderEl) {
+          dragState.placeholderEl.remove();
+        }
+        dragState.placeholderEl = null;
+        if (dragState.ghostEl) {
+          dragState.ghostEl.remove();
+        }
+        dragState.ghostEl = null;
+        document.body.style.userSelect = "";
+        document.body.style.webkitUserSelect = "";
       }
 
-      function startDrag(target) {
+      function createGhost(target) {
+        const rect = target.getBoundingClientRect();
+        const ghost = target.cloneNode(true);
+        ghost.classList.add("drag-ghost");
+        ghost.style.width = `${rect.width}px`;
+        ghost.style.height = `${rect.height}px`;
+        document.body.appendChild(ghost);
+        dragState.ghostEl = ghost;
+      }
+
+      function moveGhost(x, y) {
+        if (!dragState.ghostEl) {
+          return;
+        }
+        dragState.ghostEl.style.transform = `translate(${x}px, ${y}px) translate(-50%, -50%)`;
+      }
+
+      function startDrag(target, x, y) {
         dragState.active = true;
         dragState.draggingEl = target;
         target.classList.add("dragging");
+        dragState.placeholderEl = document.createElement("div");
+        dragState.placeholderEl.className = "order-item order-placeholder";
+        dragState.placeholderEl.style.width = `${target.offsetWidth}px`;
+        dragState.placeholderEl.style.height = `${target.offsetHeight}px`;
+        orderGrid.insertBefore(dragState.placeholderEl, target.nextSibling);
+        createGhost(target);
+        moveGhost(x, y);
+        document.body.style.userSelect = "none";
+        document.body.style.webkitUserSelect = "none";
       }
 
       function handlePointerDown(event) {
@@ -904,7 +966,10 @@
         dragState.pointerId = event.pointerId;
         dragState.startX = event.clientX;
         dragState.startY = event.clientY;
-        dragState.longPressTimer = setTimeout(() => startDrag(target), 320);
+        dragState.longPressTimer = setTimeout(
+          () => startDrag(target, event.clientX, event.clientY),
+          320
+        );
       }
 
       function handlePointerMove(event) {
@@ -923,23 +988,37 @@
         }
 
         event.preventDefault();
+        moveGhost(event.clientX, event.clientY);
+
+        const edgePadding = 60;
+        const scrollSpeed = 12;
+        if (event.clientY < edgePadding) {
+          window.scrollBy(0, -scrollSpeed);
+        } else if (event.clientY > window.innerHeight - edgePadding) {
+          window.scrollBy(0, scrollSpeed);
+        }
+
         const element = document.elementFromPoint(event.clientX, event.clientY);
         const overItem = element ? element.closest(".order-item") : null;
-        if (!overItem || overItem === dragState.draggingEl) {
+        if (
+          !overItem ||
+          overItem === dragState.draggingEl ||
+          overItem === dragState.placeholderEl
+        ) {
           return;
         }
 
         const items = Array.from(orderGrid.children);
-        const draggingIndex = items.indexOf(dragState.draggingEl);
+        const draggingIndex = items.indexOf(dragState.placeholderEl);
         const overIndex = items.indexOf(overItem);
         if (draggingIndex === -1 || overIndex === -1) {
           return;
         }
 
         if (overIndex > draggingIndex) {
-          orderGrid.insertBefore(dragState.draggingEl, overItem.nextSibling);
+          orderGrid.insertBefore(dragState.placeholderEl, overItem.nextSibling);
         } else {
-          orderGrid.insertBefore(dragState.draggingEl, overItem);
+          orderGrid.insertBefore(dragState.placeholderEl, overItem);
         }
         updateOrderIndexes();
       }
@@ -950,6 +1029,9 @@
         }
 
         if (dragState.active) {
+          if (dragState.placeholderEl && dragState.draggingEl) {
+            orderGrid.insertBefore(dragState.draggingEl, dragState.placeholderEl);
+          }
           syncStateFromDom();
         }
         clearDragState();
@@ -975,6 +1057,8 @@
       orderGrid.addEventListener("pointermove", handlePointerMove);
       orderGrid.addEventListener("pointerup", handlePointerUp);
       orderGrid.addEventListener("pointercancel", handlePointerUp);
+      orderGrid.addEventListener("contextmenu", (event) => event.preventDefault());
+      orderGrid.addEventListener("dragstart", (event) => event.preventDefault());
 
       fileInput.addEventListener("change", (event) => {
         const files = Array.from(event.target.files || []);
