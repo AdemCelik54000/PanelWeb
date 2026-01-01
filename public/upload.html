@@ -733,10 +733,14 @@
         saveOrderButton.textContent = "ENREGISTREMENT...";
 
         const orderedIds = getOrderedPublicIds();
-        const payload = orderedIds.map((id, index) => ({
-          public_id: id,
-          position: index + 1,
-        }));
+        const payload = orderedIds.map((id, index) => {
+          const item = state.images.find((image) => image.public_id === id);
+          return {
+            public_id: id,
+            position: index + 1,
+            resource_type: item?.kind === "video" ? "video" : "image",
+          };
+        });
 
         const success = await saveOrderPayload(payload);
 
@@ -784,6 +788,7 @@
           const payload = updatedImages.map((image, index) => ({
             public_id: image.public_id,
             position: index + 1,
+            resource_type: image.kind === "video" ? "video" : "image",
           }));
           const success = await saveOrderPayload(payload);
           if (success) {
@@ -802,7 +807,11 @@
         }, 0);
         const nextPosition = maxPosition + 1;
         const success = await saveOrderPayload([
-          { public_id: uploadedAsset.public_id, position: nextPosition },
+          {
+            public_id: uploadedAsset.public_id,
+            position: nextPosition,
+            resource_type: "image",
+          },
         ]);
         if (success) {
           state.images = sortImages(

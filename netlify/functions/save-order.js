@@ -46,12 +46,13 @@ exports.handler = async (event) => {
   try {
     for (const item of items) {
       const publicId = item?.public_id;
+      const resourceType = item?.resource_type === "video" ? "video" : "image";
       const position = toValidPosition(item?.position);
       if (!publicId || !position) {
         return buildResponse(400, { error: "invalid_item" });
       }
 
-      const url = `https://api.cloudinary.com/v1_1/${cloudName}/resources/image/upload/${encodeURIComponent(
+      const url = `https://api.cloudinary.com/v1_1/${cloudName}/resources/${resourceType}/upload/${encodeURIComponent(
         publicId
       )}`;
       const body = new URLSearchParams();
@@ -73,6 +74,7 @@ exports.handler = async (event) => {
           statusText: response.statusText,
           body: errorBody,
           publicId,
+          resourceType,
         });
         return buildResponse(500, {
           error: "cloudinary_error",
