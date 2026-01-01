@@ -43,8 +43,6 @@ exports.handler = async (event) => {
   }
 
   const auth = Buffer.from(`${apiKey}:${apiSecret}`).toString("base64");
-  const url = `https://api.cloudinary.com/v1_1/${cloudName}/resources/image/context`;
-
   try {
     for (const item of items) {
       const publicId = item?.public_id;
@@ -53,8 +51,10 @@ exports.handler = async (event) => {
         return buildResponse(400, { error: "invalid_item" });
       }
 
+      const url = `https://api.cloudinary.com/v1_1/${cloudName}/resources/image/upload/${encodeURIComponent(
+        publicId
+      )}`;
       const body = new URLSearchParams();
-      body.append("public_ids[]", publicId);
       body.append("context", `position=${position}`);
 
       const response = await fetch(url, {

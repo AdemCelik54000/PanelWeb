@@ -1,0 +1,33 @@
+﻿D%5D%2C%22theme%22%3A%22dark%22%2C%22parsedUrl%22%3A%7B%7D%2C%22autoSync%22%3Atrue%2C%22height%22%3A%22auto%22%2C%22fontSize%22%3A%22md%22%2C%22headerSize%22%3A%22md%22%2C%22lineHeight%22%3A%22lg%22%7D"></div>
+<a name="update_folder_sample_response" class="anchor"></a><h4><a href="#update_folder_sample_response">Sample response </a></h4>
+<div class="cld-sdk-code-snippets" data-props="%7B%22snippets%22%3A%5B%7B%22language%22%3A%22JSON%22%2C%22versions%22%3A%5B%7B%22snippet%22%3A%22%7B%5Cn%20%20%5C%22from%5C%22%3A%20%7B%5Cn%20%20%20%20%5C%22name%5C%22%3A%20%5C%22test%5C%22%2C%5Cn%20%20%20%20%5C%22path%5C%22%3A%20%5C%22product%2Ftest%5C%22%2C%5Cn%20%20%7D%2C%5Cn%20%20%5C%22to%5C%22%3A%20%7B%5Cn%20%20%20%20%5C%22name%5C%22%3A%20%5C%22test1%5C%22%2C%5Cn%20%20%20%20%5C%22path%5C%22%3A%20%5C%22product1%2Ftest1%5C%22%2C%5Cn%20%20%7D%5Cn%7D%22%2C%22sdkId%22%3A%22%22%2C%22syntax%22%3A%22json%22%7D%5D%7D%5D%2C%22theme%22%3A%22dark%22%2C%22parsedUrl%22%3A%7B%7D%2C%22languageMenu%22%3A%22text%22%2C%22height%22%3A%22auto%22%2C%22fontSize%22%3A%22md%22%2C%22headerSize%22%3A%22md%22%2C%22lineHeight%22%3A%22lg%22%7D"></div>
+<hr>
+<a name="delete_folder" class="anchor"></a><h3><a href="#delete_folder">Delete folder</a></h3>
+<p>Deletes an empty folder. </p>
+<p></p>
+<div class="md_special md_tip"><div class="md_special_inner">
+<div class="md_title">
+<div class="note_icon"></div>Tips</div>
+The folder must be empty before you can delete it.
+<ul>
+<li>To find all assets currently in a folder:
+
+<ul>
+<li>In <a href="folder_modes">dynamic folder mode</a>, use the <a href="#get_resources_by_asset_folder">get resources by asset folder</a> method.</li>
+<li>In <a href="folder_modes">fixed folder mode</a>, use the <a href="admin_api#get_resources">get resources</a> method with the <code>prefix</code> parameter to find all assets with a specified path in the public ID.</li>
+</ul>
+</li>
+<li>To move assets out of a folder:
+
+<ul>
+<li>In <a href="folder_modes">dynamic folder mode</a>, use the <a href="#update_details_of_an_existing_resource">update</a> method with the <code>asset_folder</code> parameter to change the asset's asset folder. </li>
+<li>In <a href="folder_modes">fixed folder mode</a>, use the <a href="image_upload_api_reference#rename">rename</a> method to change the public ID path.</li>
+</ul>
+</li>
+<li>To delete assets: use the <a href="#delete_resources">Delete resources</a> method.</li>
+</ul>
+</div></div>
+
+<a name="delete_folder_syntax" class="anchor"></a><h4><a href="#delete_folder_syntax">Syntax </a></h4>
+<p><code>DELETE /folders/:folder</code></p>
+<div class="cld-sdk-code-snippets" data-props="%7B%22snippets%22%3A%5B%7B%22language%22%3A%22Node.js%22%2C%22versions%22%3A%5B%7B%22snippet%22%3A%22cloudinary.v2.api.delete_folder(folder).then(callback)%3B%22%2C%22sdkId%22%3A%22nodejs%22%2C%22syntax%22%3A%22javascript%22%2C%22versionName%22%3A%22cloudinary%202.x%22%7D%5D%7D%2C%7B%22language%22%3A%22Python%22%2C%22versions%22%3A%5B%7B%22snippet%22%3A%22cloudinary.api.delete_folder(folder)%22%2C%22sdkId%22%3A%22python%22%2C%22syntax%22%3A%22python%22%2C%22versionName%22%3A%22cloudinary%201.x%22%7D%5D%7D%2C%7B%22language%22%3A%22PHP%22%2C%22versions%22%3A%5B%7B%22snippet%22%3A%22%24api-%3EdeleteFolder(%24folder)%3B%22%2C%22sdkId%22%3A%22php_2%22%2C%22syntax%22%3A%22php%22%2C%22versionName%22%3A%22cloudinary_php%203.x%22%7D%5D%7D%2C%7B%22language%22%3A%22Java%22%2C%22versions%22%3A%5B%7B%22snippet%22%3A%22api.deleteFolder(String%20folder%2C%20Map%20options)%3B%22%2C%22sdkId%22%3A%22java%22%2C%22syntax%22%3A%22java%22%2C%22versionName%22%3A%22cloudinary%202.x%22%7D%5D%7D%2C%7B%22language%22%3A%22Go%22%2C%22versions%22%3A%5B%7B%22snippet%22%3A%22resp%2C%20err%20%3A%3D%20cld.Admin.DeleteFolder(ctx%2C%20admin.DeleteFolderParams%7B%7D)%22%2C%22sdkId%22%3A%22go%22%2C%22syntax%22%3A%22go%22%2C%22versionName%22%3A%22cloudinary-go%202.x%22%7D%5D%7D%2C%7B%22language%22%3A%22Ruby%22%2C%22versions%22%3A%5B%7B%22snippet%22%3A%22Cloudinary%3A%3AApi.delete_folder(folder)%
