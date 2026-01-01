@@ -563,6 +563,7 @@
         const inUpload = view === "upload";
         uploadView.classList.toggle("hidden", !inUpload);
         orderView.classList.toggle("hidden", !inUpload);
+        orderView.style.display = inUpload ? "" : "none";
         saveOrderButton.classList.toggle("hidden", !inUpload || state.selectMode);
         selectionActions.classList.toggle("hidden", !inUpload || !state.selectMode);
         selectModeButton.classList.toggle("hidden", !inUpload);
@@ -1382,6 +1383,9 @@
         uploadFiles(files);
       });
 
+      state.selectMode = false;
+      resetSelection();
+      updateSelectionModeUI();
       showView("category");
       renderCategories();
     </script>
