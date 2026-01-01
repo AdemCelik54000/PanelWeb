@@ -551,6 +551,7 @@
       const LIST_IMAGES_ENDPOINT = "/.netlify/functions/list-images";
       const SAVE_ORDER_ENDPOINT = "/.netlify/functions/save-order";
       const DELETE_ASSETS_ENDPOINT = "/.netlify/functions/delete-assets";
+      const SIGN_UPLOAD_ENDPOINT = "/.netlify/functions/sign-upload";
 
       const AUTH_STORAGE_KEY = "site_basic_auth";
       const AUTH_USERNAME = "02021980";
@@ -604,6 +605,28 @@
           handleAuthError();
         }
         return response;
+      }
+
+      async function getUploadSignature({ folder, tags }) {
+        const response = await fetchWithAuth(SIGN_UPLOAD_ENDPOINT, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            folder,
+            tags,
+            upload_preset: CLOUDINARY_CONFIG.uploadPreset,
+          }),
+        });
+
+        if (!response.ok) {
+          return null;
+        }
+
+        try {
+          return await response.json();
+        } catch (error) {
+          return null;
+        }
       }
 
       loginForm.addEventListener("submit", (event) => {
@@ -1136,12 +1159,26 @@
             }
           }
 
+          const tags = hash ? `sha1_${hash}` : "";
+          const signaturePayload = await getUploadSignature({
+            folder: state.currentFolder,
+            tags,
+          });
+          if (!signaturePayload?.signature || !signaturePayload?.timestamp) {
+            skippedCount += 1;
+            lastError = "Signature upload invalide";
+            continue;
+          }
+
           const formData = new FormData();
           formData.append("file", file);
-          formData.append("upload_preset", CLOUDINARY_CONFIG.uploadPreset);
           formData.append("folder", state.currentFolder);
-          if (hash) {
-            formData.append("tags", `sha1_${hash}`);
+          formData.append("upload_preset", CLOUDINARY_CONFIG.uploadPreset);
+          formData.append("timestamp", signaturePayload.timestamp);
+          formData.append("signature", signaturePayload.signature);
+          formData.append("api_key", signaturePayload.api_key);
+          if (tags) {
+            formData.append("tags", tags);
           }
 
           try {
