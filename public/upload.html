@@ -52,9 +52,8 @@
         min-height: 100svh;
         padding: calc(24px + env(safe-area-inset-top)) 16px
           calc(40px + env(safe-area-inset-bottom));
-        overflow: hidden;
-        position: fixed;
-        inset: 0;
+        overflow-y: auto;
+        position: static;
       }
 
       .shell {
@@ -209,14 +208,12 @@
       .order-scroll {
         flex: 1;
         min-height: 200px;
-        max-height: min(55svh, 520px);
-        overflow-y: auto;
-        -webkit-overflow-scrolling: touch;
+        max-height: none;
+        overflow: visible;
         border-radius: 14px;
         background: #ffffff;
         border: 1px solid var(--border);
         padding: 12px;
-        touch-action: pan-y;
       }
 
       .order-grid {
@@ -420,7 +417,6 @@
       const orderGrid = document.getElementById("orderGrid");
       const orderStatus = document.getElementById("orderStatus");
       const orderEmpty = document.getElementById("orderEmpty");
-      const orderScroll = document.getElementById("orderScroll");
 
       function renderCategories() {
         categoryButtons.innerHTML = "";
@@ -959,17 +955,7 @@
         uploadFiles(files);
       });
 
-      document.addEventListener(
-        "touchmove",
-        (event) => {
-          if (orderScroll && orderScroll.contains(event.target)) {
-            return;
-          }
-          event.preventDefault();
-        },
-        { passive: false }
-      );
-
+      showView("category");
       renderCategories();
     </script>
   </body>
