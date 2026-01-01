@@ -17,7 +17,12 @@ exports.handler = async (event) => {
   const apiSecret = process.env.CLOUDINARY_API_SECRET;
 
   if (!cloudName || !apiKey || !apiSecret) {
-    return buildResponse(500, { error: "missing_cloudinary_env" });
+    const missing = [];
+    if (!cloudName) missing.push("CLOUDINARY_CLOUD_NAME");
+    if (!apiKey) missing.push("CLOUDINARY_API_KEY");
+    if (!apiSecret) missing.push("CLOUDINARY_API_SECRET");
+    console.error("Cloudinary env missing", { missing });
+    return buildResponse(500, { error: "missing_cloudinary_env", missing });
   }
 
   const auth = Buffer.from(`${apiKey}:${apiSecret}`).toString("base64");
@@ -43,7 +48,18 @@ exports.handler = async (event) => {
       });
 
       if (!response.ok) {
-        return buildResponse(500, { error: "cloudinary_error" });
+        const body = await response.text();
+        console.error("Cloudinary list error", {
+          status: response.status,
+          statusText: response.statusText,
+          body,
+          prefix,
+        });
+        return buildResponse(500, {
+          error: "cloudinary_error",
+          status: response.status,
+          body,
+        });
       }
 
       const data = await response.json();
@@ -51,7 +67,8 @@ exports.handler = async (event) => {
       nextCursor = data?.next_cursor || null;
     } while (nextCursor);
   } catch (error) {
-    return buildResponse(500, { error: "cloudinary_error" });
+    console.error("Cloudinary list error", { error, prefix });
+    return buildResponse(500, { error: "cloudinary_error", message: String(error) });
   }
 
   const items = resources.map((resource) => {
