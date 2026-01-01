@@ -160,6 +160,31 @@
         margin-bottom: 16px;
       }
 
+      .btn-select {
+        background: #e2e8f0;
+        color: #0f172a;
+        box-shadow: none;
+        font-size: 13px;
+        padding: 8px 12px;
+      }
+
+      .btn-select.active {
+        background: linear-gradient(135deg, #10b981, #22c55e);
+        color: #ffffff;
+        box-shadow: 0 8px 16px rgba(16, 185, 129, 0.35);
+      }
+
+      .btn-split {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 12px;
+        margin-bottom: 16px;
+      }
+
+      .btn-download {
+        background: linear-gradient(135deg, #2563eb, #0ea5e9);
+      }
+
       .btn-back {
         background: #e2e8f0;
         color: #0f172a;
@@ -310,6 +335,18 @@
         font-weight: 700;
       }
 
+      .order-item.selected {
+        outline: 3px solid #22c55e;
+        outline-offset: -3px;
+      }
+
+      .order-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+      }
+
       .order-empty {
         text-align: center;
         color: var(--muted);
@@ -340,6 +377,14 @@
       <button class="btn btn-save hidden" type="button" id="saveOrderButton">
         ENREGISTRER L'ORDRE
       </button>
+      <div class="btn-split hidden" id="selectionActions">
+        <button class="btn btn-save" type="button" id="deleteSelectedButton">
+          SUPPRIMER
+        </button>
+        <button class="btn btn-download" type="button" id="downloadSelectedButton">
+          ENREGISTRER
+        </button>
+      </div>
 
       <section id="categoryView" class="card">
         <div class="section-title">Choisissez une catégorie</div>
@@ -374,7 +419,10 @@
         <div class="status" id="statusMessage" aria-live="polite"></div>
       </section>
       <section id="orderView" class="card order-card hidden">
-        <div class="section-title">Ordre des photos</div>
+        <div class="order-header">
+          <div class="section-title">Ordre des photos</div>
+          <button class="btn btn-select" type="button" id="selectModeButton">Selectionner</button>
+        </div>
         <div class="order-scroll" id="orderScroll">
           <div class="order-grid" id="orderGrid"></div>
           <div class="order-empty hidden" id="orderEmpty">Aucune photo dans ce dossier.</div>
@@ -392,6 +440,7 @@
       const DUPLICATE_CHECK_ENDPOINT = "/.netlify/functions/check-image";
       const LIST_IMAGES_ENDPOINT = "/.netlify/functions/list-images";
       const SAVE_ORDER_ENDPOINT = "/.netlify/functions/save-order";
+      const DELETE_ASSETS_ENDPOINT = "/.netlify/functions/delete-assets";
 
       const CATEGORIES = [
         {
@@ -450,6 +499,8 @@
         currentLabel: null,
         images: [],
         hasManualOrder: false,
+        selectMode: false,
+        selectedIds: new Set(),
       };
 
       const categoryView = document.getElementById("categoryView");
@@ -465,6 +516,10 @@
       const fileInput = document.getElementById("fileInput");
       const uploadButton = document.getElementById("uploadButton");
       const saveOrderButton = document.getElementById("saveOrderButton");
+      const selectionActions = document.getElementById("selectionActions");
+      const deleteSelectedButton = document.getElementById("deleteSelectedButton");
+      const downloadSelectedButton = document.getElementById("downloadSelectedButton");
+      const selectModeButton = document.getElementById("selectModeButton");
       const orderGrid = document.getElementById("orderGrid");
       const orderStatus = document.getElementById("orderStatus");
       const orderEmpty = document.getElementById("orderEmpty");
@@ -481,13 +536,27 @@
         });
       }
 
+      function updateSelectionModeUI() {
+        selectModeButton.classList.toggle("active", state.selectMode);
+        selectModeButton.textContent = "Selectionner";
+        saveOrderButton.classList.toggle("hidden", state.selectMode);
+        selectionActions.classList.toggle("hidden", !state.selectMode);
+      }
+
+      function resetSelection() {
+        state.selectedIds.clear();
+        renderOrderGrid();
+      }
+
       function showView(view) {
         categoryView.classList.toggle("hidden", view !== "category");
         subcategoryView.classList.toggle("hidden", view !== "subcategory");
         const inUpload = view === "upload";
         uploadView.classList.toggle("hidden", !inUpload);
         orderView.classList.toggle("hidden", !inUpload);
-        saveOrderButton.classList.toggle("hidden", !inUpload);
+        saveOrderButton.classList.toggle("hidden", !inUpload || state.selectMode);
+        selectionActions.classList.toggle("hidden", !inUpload || !state.selectMode);
+        selectModeButton.classList.toggle("hidden", !inUpload);
       }
 
       function selectCategory(categoryId) {
@@ -530,6 +599,9 @@
         state.currentFolder = fullFolder;
         uploadTitle.textContent = label;
         selectedPath.textContent = fullFolder;
+        state.selectMode = false;
+        resetSelection();
+        updateSelectionModeUI();
         showView("upload");
         loadImagesForFolder();
       }
@@ -616,6 +688,9 @@
         state.images.forEach((image, index) => {
           const item = document.createElement("div");
           item.className = "order-item";
+          if (state.selectedIds.has(image.public_id)) {
+            item.classList.add("selected");
+          }
           item.dataset.publicId = image.public_id;
 
           const img = document.createElement("img");
@@ -653,10 +728,33 @@
         updateOrderIndexes();
       }
 
+      function toggleSelectMode() {
+        state.selectMode = !state.selectMode;
+        if (!state.selectMode) {
+          resetSelection();
+        }
+        updateSelectionModeUI();
+        renderOrderGrid();
+      }
+
+      function toggleSelectedItem(publicId) {
+        if (!publicId) {
+          return;
+        }
+        if (state.selectedIds.has(publicId)) {
+          state.selectedIds.delete(publicId);
+        } else {
+          state.selectedIds.add(publicId);
+        }
+        renderOrderGrid();
+      }
+
       async function loadImagesForFolder() {
         if (!state.currentFolder) {
           return;
         }
+        resetSelection();
+        updateSelectionModeUI();
         const endpoint = `${LIST_IMAGES_ENDPOINT}?folder=${encodeURIComponent(
           state.currentFolder
         )}`;
@@ -1027,6 +1125,104 @@
         }
       }
 
+      async function deleteSelectedAssets() {
+        if (state.selectedIds.size === 0) {
+          orderStatus.textContent = "Aucune selection.";
+          return;
+        }
+        const items = state.images
+          .filter((image) => state.selectedIds.has(image.public_id))
+          .map((image) => ({
+            public_id: image.public_id,
+            resource_type: image.kind === "video" ? "video" : "image",
+          }));
+
+        orderStatus.textContent = "Suppression en cours...";
+        deleteSelectedButton.disabled = true;
+        downloadSelectedButton.disabled = true;
+
+        let success = false;
+        try {
+          const response = await fetch(DELETE_ASSETS_ENDPOINT, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ items }),
+          });
+          success = response.ok;
+        } catch (error) {
+          success = false;
+        }
+
+        deleteSelectedButton.disabled = false;
+        downloadSelectedButton.disabled = false;
+
+        if (!success) {
+          orderStatus.textContent = "Erreur lors de la suppression.";
+          return;
+        }
+
+        orderStatus.textContent = "Suppression terminee.";
+        state.selectMode = false;
+        resetSelection();
+        updateSelectionModeUI();
+        await loadImagesForFolder();
+      }
+
+      function getFilenameFromUrl(url, publicId) {
+        if (!url) {
+          return publicId ? publicId.split("/").pop() : "media";
+        }
+        try {
+          const parsed = new URL(url);
+          const parts = parsed.pathname.split("/");
+          return parts[parts.length - 1] || publicId?.split("/").pop() || "media";
+        } catch (error) {
+          return publicId ? publicId.split("/").pop() : "media";
+        }
+      }
+
+      async function downloadSelectedAssets() {
+        if (state.selectedIds.size === 0) {
+          orderStatus.textContent = "Aucune selection.";
+          return;
+        }
+        const items = state.images.filter((image) => state.selectedIds.has(image.public_id));
+        orderStatus.textContent = "Telechargement en cours...";
+        deleteSelectedButton.disabled = true;
+        downloadSelectedButton.disabled = true;
+
+        for (const item of items) {
+          const url = item.secure_url;
+          if (!url) {
+            continue;
+          }
+          try {
+            const response = await fetch(url);
+            if (!response.ok) {
+              continue;
+            }
+            const blob = await response.blob();
+            const link = document.createElement("a");
+            link.href = URL.createObjectURL(blob);
+            link.download = getFilenameFromUrl(url, item.public_id);
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+            URL.revokeObjectURL(link.href);
+          } catch (error) {
+            continue;
+          }
+        }
+
+        deleteSelectedButton.disabled = false;
+        downloadSelectedButton.disabled = false;
+        orderStatus.textContent = "Telechargement termine.";
+        state.selectMode = false;
+        resetSelection();
+        updateSelectionModeUI();
+        renderOrderGrid();
+      }
+
       function startDrag(target, x, y) {
         dragState.active = true;
         dragState.draggingEl = target;
@@ -1049,6 +1245,9 @@
         if (!target) {
           return;
         }
+        if (state.selectMode) {
+          return;
+        }
 
         dragState.pointerId = event.pointerId;
         dragState.startX = event.clientX;
@@ -1063,6 +1262,9 @@
 
       function handlePointerMove(event) {
         if (dragState.pointerId !== event.pointerId) {
+          return;
+        }
+        if (state.selectMode) {
           return;
         }
 
@@ -1112,6 +1314,10 @@
         if (dragState.pointerId !== event.pointerId) {
           return;
         }
+        if (state.selectMode) {
+          clearDragState();
+          return;
+        }
 
         if (dragState.active) {
           if (dragState.placeholderEl && dragState.draggingEl) {
@@ -1137,6 +1343,9 @@
       uploadButton.addEventListener("click", openUploadWidget);
 
       saveOrderButton.addEventListener("click", saveCurrentOrder);
+      selectModeButton.addEventListener("click", toggleSelectMode);
+      deleteSelectedButton.addEventListener("click", deleteSelectedAssets);
+      downloadSelectedButton.addEventListener("click", downloadSelectedAssets);
 
       orderGrid.addEventListener("pointerdown", handlePointerDown);
       orderGrid.addEventListener("pointermove", handlePointerMove);
@@ -1144,6 +1353,16 @@
       orderGrid.addEventListener("pointercancel", handlePointerUp);
       orderGrid.addEventListener("contextmenu", (event) => event.preventDefault());
       orderGrid.addEventListener("dragstart", (event) => event.preventDefault());
+      orderGrid.addEventListener("click", (event) => {
+        if (!state.selectMode || dragState.active) {
+          return;
+        }
+        const target = event.target.closest(".order-item");
+        if (!target) {
+          return;
+        }
+        toggleSelectedItem(target.dataset.publicId);
+      });
       document.addEventListener("touchmove", handleGlobalTouchMove, { passive: false });
 
       fileInput.addEventListener("change", (event) => {
