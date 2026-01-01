@@ -41,10 +41,8 @@
       body {
         height: 100%;
         overscroll-behavior: none;
-        background: radial-gradient(120% 120% at 10% 10%, #1d4ed8 0%, transparent 45%),
-          radial-gradient(120% 120% at 90% 10%, #f97316 0%, transparent 40%),
-          linear-gradient(135deg, var(--bg-1), var(--bg-2));
-        background-color: var(--bg-1);
+        background: #000000;
+        background-color: #000000;
       }
 
       body {
@@ -939,8 +937,19 @@
         ghostEl: null,
         startX: 0,
         startY: 0,
+        lastX: 0,
+        lastY: 0,
+        autoScrollVelocity: 0,
+        scrollRaf: null,
         active: false,
       };
+
+      function handleGlobalTouchMove(event) {
+        if (!dragState.active) {
+          return;
+        }
+        event.preventDefault();
+      }
 
       function clearDragState() {
         if (dragState.longPressTimer) {
@@ -949,6 +958,11 @@
         dragState.longPressTimer = null;
         dragState.pointerId = null;
         dragState.active = false;
+        dragState.autoScrollVelocity = 0;
+        if (dragState.scrollRaf) {
+          cancelAnimationFrame(dragState.scrollRaf);
+        }
+        dragState.scrollRaf = null;
         if (dragState.draggingEl) {
           dragState.draggingEl.classList.remove("dragging");
         }
@@ -963,6 +977,8 @@
         dragState.ghostEl = null;
         document.body.style.userSelect = "";
         document.body.style.webkitUserSelect = "";
+        document.body.style.overflow = "";
+        document.body.style.touchAction = "";
       }
 
       function createGhost(target) {
@@ -982,6 +998,35 @@
         dragState.ghostEl.style.transform = `translate(${x}px, ${y}px) translate(-50%, -50%)`;
       }
 
+      function updateAutoScroll(pointerY) {
+        const edgeSize = 90;
+        const maxSpeed = 10;
+        let velocity = 0;
+
+        if (pointerY < edgeSize) {
+          const intensity = (edgeSize - pointerY) / edgeSize;
+          velocity = -Math.max(1, intensity * maxSpeed);
+        } else if (pointerY > window.innerHeight - edgeSize) {
+          const intensity = (pointerY - (window.innerHeight - edgeSize)) / edgeSize;
+          velocity = Math.max(1, intensity * maxSpeed);
+        }
+
+        dragState.autoScrollVelocity = velocity;
+
+        if (!dragState.scrollRaf && velocity !== 0) {
+          const step = () => {
+            if (!dragState.active || dragState.autoScrollVelocity === 0) {
+              dragState.scrollRaf = null;
+              return;
+            }
+            window.scrollBy(0, dragState.autoScrollVelocity);
+            moveGhost(dragState.lastX, dragState.lastY);
+            dragState.scrollRaf = requestAnimationFrame(step);
+          };
+          dragState.scrollRaf = requestAnimationFrame(step);
+        }
+      }
+
       function startDrag(target, x, y) {
         dragState.active = true;
         dragState.draggingEl = target;
@@ -995,6 +1040,8 @@
         moveGhost(x, y);
         document.body.style.userSelect = "none";
         document.body.style.webkitUserSelect = "none";
+        document.body.style.overflow = "hidden";
+        document.body.style.touchAction = "none";
       }
 
       function handlePointerDown(event) {
@@ -1006,6 +1053,8 @@
         dragState.pointerId = event.pointerId;
         dragState.startX = event.clientX;
         dragState.startY = event.clientY;
+        dragState.lastX = event.clientX;
+        dragState.lastY = event.clientY;
         dragState.longPressTimer = setTimeout(
           () => startDrag(target, event.clientX, event.clientY),
           320
@@ -1028,15 +1077,11 @@
         }
 
         event.preventDefault();
+        dragState.lastX = event.clientX;
+        dragState.lastY = event.clientY;
         moveGhost(event.clientX, event.clientY);
 
-        const edgePadding = 60;
-        const scrollSpeed = 12;
-        if (event.clientY < edgePadding) {
-          window.scrollBy(0, -scrollSpeed);
-        } else if (event.clientY > window.innerHeight - edgePadding) {
-          window.scrollBy(0, scrollSpeed);
-        }
+        updateAutoScroll(event.clientY);
 
         const element = document.elementFromPoint(event.clientX, event.clientY);
         const overItem = element ? element.closest(".order-item") : null;
@@ -1099,6 +1144,7 @@
       orderGrid.addEventListener("pointercancel", handlePointerUp);
       orderGrid.addEventListener("contextmenu", (event) => event.preventDefault());
       orderGrid.addEventListener("dragstart", (event) => event.preventDefault());
+      document.addEventListener("touchmove", handleGlobalTouchMove, { passive: false });
 
       fileInput.addEventListener("change", (event) => {
         const files = Array.from(event.target.files || []);
