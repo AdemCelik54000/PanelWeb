@@ -34,7 +34,12 @@ exports.handler = async (event) => {
   const apiSecret = process.env.CLOUDINARY_API_SECRET;
 
   if (!cloudName || !apiKey || !apiSecret) {
-    return buildResponse(500, { error: "missing_cloudinary_env" });
+    const missing = [];
+    if (!cloudName) missing.push("CLOUDINARY_CLOUD_NAME");
+    if (!apiKey) missing.push("CLOUDINARY_API_KEY");
+    if (!apiSecret) missing.push("CLOUDINARY_API_SECRET");
+    console.error("Cloudinary env missing", { missing });
+    return buildResponse(500, { error: "missing_cloudinary_env", missing });
   }
 
   const auth = Buffer.from(`${apiKey}:${apiSecret}`).toString("base64");
@@ -62,11 +67,24 @@ exports.handler = async (event) => {
       });
 
       if (!response.ok) {
-        return buildResponse(500, { error: "cloudinary_error", public_id: publicId });
+        const errorBody = await response.text();
+        console.error("Cloudinary save-order error", {
+          status: response.status,
+          statusText: response.statusText,
+          body: errorBody,
+          publicId,
+        });
+        return buildResponse(500, {
+          error: "cloudinary_error",
+          public_id: publicId,
+          status: response.status,
+          body: errorBody,
+        });
       }
     }
   } catch (error) {
-    return buildResponse(500, { error: "cloudinary_error" });
+    console.error("Cloudinary save-order error", { error });
+    return buildResponse(500, { error: "cloudinary_error", message: String(error) });
   }
 
   return buildResponse(200, { updated: items.length });
