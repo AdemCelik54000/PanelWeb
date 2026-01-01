@@ -240,6 +240,87 @@
         display: none;
       }
 
+      body.locked {
+        overflow: hidden;
+      }
+
+      body.locked .shell {
+        display: none;
+      }
+
+      .login-overlay {
+        position: fixed;
+        inset: 0;
+        display: none;
+        align-items: center;
+        justify-content: center;
+        padding: 24px 16px;
+        background: radial-gradient(circle at top, rgba(15, 23, 42, 0.85), rgba(2, 6, 23, 0.98));
+        z-index: 2000;
+      }
+
+      .login-overlay.active {
+        display: flex;
+      }
+
+      .login-card {
+        width: min(420px, 100%);
+        background: #f8fafc;
+        border-radius: 18px;
+        padding: 20px;
+        box-shadow: var(--shadow);
+        border: 1px solid var(--border);
+      }
+
+      .login-title {
+        font-size: 20px;
+        font-weight: 800;
+        margin-bottom: 6px;
+      }
+
+      .login-subtitle {
+        font-size: 13px;
+        color: var(--muted);
+        margin-bottom: 14px;
+      }
+
+      .login-field {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        font-size: 12px;
+        font-weight: 700;
+        color: var(--ink);
+        margin-bottom: 12px;
+      }
+
+      .login-input {
+        border-radius: 10px;
+        border: 1px solid rgba(15, 23, 42, 0.2);
+        padding: 10px 12px;
+        font-size: 14px;
+        font-family: inherit;
+      }
+
+      .login-btn {
+        width: 100%;
+        border: none;
+        background: linear-gradient(135deg, #0ea5e9, #2563eb);
+        color: #ffffff;
+        padding: 12px;
+        border-radius: 12px;
+        font-size: 14px;
+        font-weight: 700;
+        cursor: pointer;
+      }
+
+      .login-error {
+        margin-top: 10px;
+        font-size: 12px;
+        color: #dc2626;
+        min-height: 16px;
+      }
+
       .status {
         margin-top: 12px;
         font-size: 14px;
@@ -376,6 +457,26 @@
     </style>
   </head>
   <body>
+    <div class="login-overlay" id="loginOverlay" aria-hidden="true">
+      <div class="login-card">
+        <div class="login-title">Connexion</div>
+        <div class="login-subtitle">Entrez le mot de passe pour acceder.</div>
+        <form id="loginForm">
+          <label class="login-field" for="loginPassword">
+            Mot de passe
+          </label>
+          <input
+            class="login-input"
+            type="password"
+            id="loginPassword"
+            autocomplete="current-password"
+            required
+          />
+          <button class="login-btn" type="submit">Se connecter</button>
+        </form>
+        <div class="login-error" id="loginError" role="alert"></div>
+      </div>
+    </div>
     <div class="shell">
       <header>
         <span class="tag">Upload chantier</span>
@@ -450,6 +551,73 @@
       const LIST_IMAGES_ENDPOINT = "/.netlify/functions/list-images";
       const SAVE_ORDER_ENDPOINT = "/.netlify/functions/save-order";
       const DELETE_ASSETS_ENDPOINT = "/.netlify/functions/delete-assets";
+
+      const AUTH_STORAGE_KEY = "site_basic_auth";
+      const AUTH_USERNAME = "admin";
+
+      const loginOverlay = document.getElementById("loginOverlay");
+      const loginForm = document.getElementById("loginForm");
+      const loginPassword = document.getElementById("loginPassword");
+      const loginError = document.getElementById("loginError");
+
+      function getAuthToken() {
+        return sessionStorage.getItem(AUTH_STORAGE_KEY);
+      }
+
+      function setAuthTokenFromPassword(password) {
+        const token = btoa(`${AUTH_USERNAME}:${password}`);
+        sessionStorage.setItem(AUTH_STORAGE_KEY, token);
+      }
+
+      function clearAuthToken() {
+        sessionStorage.removeItem(AUTH_STORAGE_KEY);
+      }
+
+      function setLocked(locked) {
+        document.body.classList.toggle("locked", locked);
+        loginOverlay.classList.toggle("active", locked);
+        loginOverlay.setAttribute("aria-hidden", locked ? "false" : "true");
+        if (locked) {
+          loginPassword.focus();
+        }
+      }
+
+      function showLoginError(message) {
+        loginError.textContent = message || "";
+      }
+
+      function handleAuthError() {
+        clearAuthToken();
+        showLoginError("Mot de passe incorrect.");
+        setLocked(true);
+      }
+
+      async function fetchWithAuth(url, options = {}) {
+        const headers = { ...(options.headers || {}) };
+        const token = getAuthToken();
+        if (token) {
+          headers.Authorization = `Basic ${token}`;
+        }
+
+        const response = await fetch(url, { ...options, headers });
+        if (response.status === 401) {
+          handleAuthError();
+        }
+        return response;
+      }
+
+      loginForm.addEventListener("submit", (event) => {
+        event.preventDefault();
+        const password = loginPassword.value.trim();
+        if (!password) {
+          showLoginError("Mot de passe requis.");
+          return;
+        }
+        setAuthTokenFromPassword(password);
+        loginPassword.value = "";
+        showLoginError("");
+        setLocked(false);
+      });
 
       const CATEGORIES = [
         {
@@ -637,7 +805,7 @@
 
       async function checkDuplicate(hash) {
         try {
-          const response = await fetch(
+          const response = await fetchWithAuth(
             `${DUPLICATE_CHECK_ENDPOINT}?hash=${encodeURIComponent(hash)}`
           );
           if (!response.ok) {
@@ -773,7 +941,7 @@
         orderEmpty.classList.add("hidden");
 
         try {
-          const response = await fetch(endpoint);
+          const response = await fetchWithAuth(endpoint);
           if (!response.ok) {
             const errorText = await response.text();
             console.error("Cloudinary list error", {
@@ -818,7 +986,7 @@
           return false;
         }
         try {
-          const response = await fetch(SAVE_ORDER_ENDPOINT, {
+          const response = await fetchWithAuth(SAVE_ORDER_ENDPOINT, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ items }),
@@ -1153,7 +1321,7 @@
 
         let success = false;
         try {
-          const response = await fetch(DELETE_ASSETS_ENDPOINT, {
+          const response = await fetchWithAuth(DELETE_ASSETS_ENDPOINT, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ items }),
@@ -1388,6 +1556,9 @@
       updateSelectionModeUI();
       showView("category");
       renderCategories();
+      if (!getAuthToken()) {
+        setLocked(true);
+      }
     </script>
   </body>
 </html>

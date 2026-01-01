@@ -4,9 +4,47 @@ const buildResponse = (statusCode, payload) => ({
   body: JSON.stringify(payload),
 });
 
+const getAuthorizationHeader = (headers) =>
+  headers?.authorization || headers?.Authorization || "";
+
+const isAuthorized = (event) => {
+  const expectedBasic = process.env.SITE_BASIC_AUTH;
+  if (!expectedBasic) {
+    return true;
+  }
+
+  const authHeader = getAuthorizationHeader(event.headers);
+  if (!authHeader.startsWith("Basic ")) {
+    return false;
+  }
+
+  const base64Value = authHeader.slice("Basic ".length).trim();
+  let decoded = "";
+  try {
+    decoded = Buffer.from(base64Value, "base64").toString("utf8");
+  } catch (error) {
+    return false;
+  }
+
+  return decoded === expectedBasic;
+};
+
+const unauthorizedResponse = () => ({
+  statusCode: 401,
+  headers: {
+    "Content-Type": "application/json",
+    "WWW-Authenticate": 'Basic realm="Protected"',
+  },
+  body: JSON.stringify({ error: "unauthorized" }),
+});
+
 exports.handler = async (event) => {
   if (event.httpMethod !== "POST") {
     return buildResponse(405, { error: "method_not_allowed" });
+  }
+
+  if (!isAuthorized(event)) {
+    return unauthorizedResponse();
   }
 
   let payload = null;
