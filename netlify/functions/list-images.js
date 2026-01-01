@@ -26,46 +26,50 @@ exports.handler = async (event) => {
   }
 
   const auth = Buffer.from(`${apiKey}:${apiSecret}`).toString("base64");
-  const baseUrl = `https://api.cloudinary.com/v1_1/${cloudName}/resources/image`;
-
-  let nextCursor = null;
+  const resourceTypes = ["image", "video"];
   let resources = [];
 
   try {
-    do {
-      const params = new URLSearchParams({
-        type: "upload",
-        prefix,
-        max_results: "500",
-        context: "true",
-      });
-      if (nextCursor) {
-        params.set("next_cursor", nextCursor);
-      }
+    for (const resourceType of resourceTypes) {
+      const baseUrl = `https://api.cloudinary.com/v1_1/${cloudName}/resources/${resourceType}`;
+      let nextCursor = null;
 
-      const response = await fetch(`${baseUrl}?${params.toString()}`, {
-        headers: { Authorization: `Basic ${auth}` },
-      });
-
-      if (!response.ok) {
-        const body = await response.text();
-        console.error("Cloudinary list error", {
-          status: response.status,
-          statusText: response.statusText,
-          body,
+      do {
+        const params = new URLSearchParams({
+          type: "upload",
           prefix,
+          max_results: "500",
+          context: "true",
         });
-        return buildResponse(500, {
-          error: "cloudinary_error",
-          status: response.status,
-          body,
-        });
-      }
+        if (nextCursor) {
+          params.set("next_cursor", nextCursor);
+        }
 
-      const data = await response.json();
-      resources = resources.concat(Array.isArray(data?.resources) ? data.resources : []);
-      nextCursor = data?.next_cursor || null;
-    } while (nextCursor);
+        const response = await fetch(`${baseUrl}?${params.toString()}`, {
+          headers: { Authorization: `Basic ${auth}` },
+        });
+
+        if (!response.ok) {
+          const body = await response.text();
+          console.error("Cloudinary list error", {
+            status: response.status,
+            statusText: response.statusText,
+            body,
+            prefix,
+            resourceType,
+          });
+          return buildResponse(500, {
+            error: "cloudinary_error",
+            status: response.status,
+            body,
+          });
+        }
+
+        const data = await response.json();
+        resources = resources.concat(Array.isArray(data?.resources) ? data.resources : []);
+        nextCursor = data?.next_cursor || null;
+      } while (nextCursor);
+    }
   } catch (error) {
     console.error("Cloudinary list error", { error, prefix });
     return buildResponse(500, { error: "cloudinary_error", message: String(error) });
@@ -77,6 +81,7 @@ exports.handler = async (event) => {
       public_id: resource.public_id,
       secure_url: resource.secure_url,
       created_at: resource.created_at,
+      resource_type: resource.resource_type || "image",
       position: context?.position ?? null,
     };
   });

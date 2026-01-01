@@ -296,6 +296,22 @@
         border-radius: 999px;
       }
 
+      .order-video-badge {
+        position: absolute;
+        top: 8px;
+        left: 8px;
+        width: 28px;
+        height: 28px;
+        border-radius: 999px;
+        background: rgba(15, 23, 42, 0.75);
+        color: #f8fafc;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 12px;
+        font-weight: 700;
+      }
+
       .order-empty {
         text-align: center;
         color: var(--muted);
@@ -559,6 +575,13 @@
         return Number.isFinite(value) ? value : null;
       }
 
+      function buildVideoThumbnail(publicId) {
+        if (!publicId) {
+          return "";
+        }
+        return `https://res.cloudinary.com/${CLOUDINARY_CONFIG.cloudName}/video/upload/so_0,f_jpg/${publicId}.jpg`;
+      }
+
       function detectManualOrder(items) {
         return items.length > 0 && items.every((item) => Number.isFinite(item.position));
       }
@@ -598,13 +621,20 @@
           item.dataset.publicId = image.public_id;
 
           const img = document.createElement("img");
-          img.src = image.secure_url;
+          img.src = image.kind === "video" ? buildVideoThumbnail(image.public_id) : image.secure_url;
           img.alt = state.currentLabel || "Photo chantier";
           img.loading = "lazy";
 
           const badge = document.createElement("div");
           badge.className = "order-index";
           badge.textContent = `${index + 1}`;
+
+          if (image.kind === "video") {
+            const videoBadge = document.createElement("div");
+            videoBadge.className = "order-video-badge";
+            videoBadge.textContent = "▶";
+            item.appendChild(videoBadge);
+          }
 
           item.appendChild(img);
           item.appendChild(badge);
@@ -658,6 +688,7 @@
             public_id: item.public_id,
             secure_url: item.secure_url,
             created_at: item.created_at,
+            kind: item.resource_type === "video" ? "video" : "image",
             position: parsePosition(item.position),
           }));
 
