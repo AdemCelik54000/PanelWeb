@@ -140,6 +140,13 @@
         gap: 10px;
       }
 
+      .btn-save {
+        background: linear-gradient(135deg, #dc2626, #ef4444);
+        font-size: 18px;
+        justify-content: center;
+        margin-bottom: 16px;
+      }
+
       .btn-back {
         background: #e2e8f0;
         color: #0f172a;
@@ -192,6 +199,73 @@
         color: #0f172a;
       }
 
+      .order-card {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        padding: 16px;
+      }
+
+      .order-scroll {
+        flex: 1;
+        min-height: 200px;
+        max-height: min(55svh, 520px);
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+        border-radius: 14px;
+        background: #ffffff;
+        border: 1px solid var(--border);
+        padding: 12px;
+        touch-action: pan-y;
+      }
+
+      .order-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 10px;
+      }
+
+      .order-item {
+        position: relative;
+        border-radius: 12px;
+        overflow: hidden;
+        background: #e2e8f0;
+        aspect-ratio: 1 / 1;
+        touch-action: pan-y;
+        box-shadow: 0 8px 18px rgba(15, 23, 42, 0.16);
+      }
+
+      .order-item img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        display: block;
+      }
+
+      .order-item.dragging {
+        opacity: 0.55;
+        transform: scale(0.96);
+      }
+
+      .order-index {
+        position: absolute;
+        bottom: 8px;
+        right: 8px;
+        background: rgba(15, 23, 42, 0.75);
+        color: #f8fafc;
+        font-size: 12px;
+        font-weight: 700;
+        padding: 4px 8px;
+        border-radius: 999px;
+      }
+
+      .order-empty {
+        text-align: center;
+        color: var(--muted);
+        font-size: 14px;
+        padding: 24px 12px;
+      }
+
       @media (min-width: 680px) {
         .grid {
           grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -199,6 +273,10 @@
 
         .btn-upload {
           grid-column: span 2;
+        }
+
+        .order-grid {
+          grid-template-columns: repeat(4, minmax(0, 1fr));
         }
       }
     </style>
@@ -210,6 +288,10 @@
         <h1>Ajouter des photos</h1>
         <p>Sélectionnez une catégorie, puis la sous-catégorie si besoin.</p>
       </header>
+
+      <button class="btn btn-save hidden" type="button" id="saveOrderButton">
+        ENREGISTRER L'ORDRE
+      </button>
 
       <section id="categoryView" class="card">
         <div class="section-title">Choisissez une catégorie</div>
@@ -243,6 +325,15 @@
         <div class="helper">Formats acceptés: jpg, jpeg, png, webp.</div>
         <div class="status" id="statusMessage" aria-live="polite"></div>
       </section>
+      <section id="orderView" class="card order-card hidden">
+        <div class="section-title">Ordre des photos</div>
+        <div class="order-scroll" id="orderScroll">
+          <div class="order-grid" id="orderGrid"></div>
+          <div class="order-empty hidden" id="orderEmpty">Aucune photo dans ce dossier.</div>
+        </div>
+        <div class="helper">Appui long pour deplacer une image.</div>
+        <div class="status" id="orderStatus" aria-live="polite"></div>
+      </section>
     </div>
 
     <script>
@@ -251,6 +342,8 @@
         uploadPreset: "kgehqzfz",
       };
       const DUPLICATE_CHECK_ENDPOINT = "/.netlify/functions/check-image";
+      const LIST_IMAGES_ENDPOINT = "/.netlify/functions/list-images";
+      const SAVE_ORDER_ENDPOINT = "/.netlify/functions/save-order";
 
       const CATEGORIES = [
         {
@@ -307,11 +400,14 @@
         currentCategory: null,
         currentFolder: null,
         currentLabel: null,
+        images: [],
+        hasManualOrder: false,
       };
 
       const categoryView = document.getElementById("categoryView");
       const subcategoryView = document.getElementById("subcategoryView");
       const uploadView = document.getElementById("uploadView");
+      const orderView = document.getElementById("orderView");
       const categoryButtons = document.getElementById("categoryButtons");
       const subcategoryButtons = document.getElementById("subcategoryButtons");
       const subcategoryTitle = document.getElementById("subcategoryTitle");
@@ -320,6 +416,11 @@
       const statusMessage = document.getElementById("statusMessage");
       const fileInput = document.getElementById("fileInput");
       const uploadButton = document.getElementById("uploadButton");
+      const saveOrderButton = document.getElementById("saveOrderButton");
+      const orderGrid = document.getElementById("orderGrid");
+      const orderStatus = document.getElementById("orderStatus");
+      const orderEmpty = document.getElementById("orderEmpty");
+      const orderScroll = document.getElementById("orderScroll");
 
       function renderCategories() {
         categoryButtons.innerHTML = "";
@@ -336,7 +437,10 @@
       function showView(view) {
         categoryView.classList.toggle("hidden", view !== "category");
         subcategoryView.classList.toggle("hidden", view !== "subcategory");
-        uploadView.classList.toggle("hidden", view !== "upload");
+        const inUpload = view === "upload";
+        uploadView.classList.toggle("hidden", !inUpload);
+        orderView.classList.toggle("hidden", !inUpload);
+        saveOrderButton.classList.toggle("hidden", !inUpload);
       }
 
       function selectCategory(categoryId) {
@@ -380,6 +484,7 @@
         uploadTitle.textContent = label;
         selectedPath.textContent = fullFolder;
         showView("upload");
+        loadImagesForFolder();
       }
 
       function openUploadWidget() {
@@ -413,6 +518,217 @@
           return Boolean(data?.exists);
         } catch (error) {
           return false;
+        }
+      }
+
+      function parsePosition(rawPosition) {
+        const value = Number(rawPosition);
+        return Number.isFinite(value) ? value : null;
+      }
+
+      function detectManualOrder(items) {
+        return items.length > 0 && items.every((item) => Number.isFinite(item.position));
+      }
+
+      function sortImages(items) {
+        if (state.hasManualOrder) {
+          return items
+            .slice()
+            .sort((a, b) => (a.position || 0) - (b.position || 0));
+        }
+        return items
+          .slice()
+          .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+      }
+
+      function updateOrderIndexes() {
+        const items = Array.from(orderGrid.children);
+        items.forEach((item, index) => {
+          const badge = item.querySelector(".order-index");
+          if (badge) {
+            badge.textContent = `${index + 1}`;
+          }
+        });
+      }
+
+      function renderOrderGrid() {
+        orderGrid.innerHTML = "";
+        if (!state.images.length) {
+          orderEmpty.classList.remove("hidden");
+          return;
+        }
+
+        orderEmpty.classList.add("hidden");
+        state.images.forEach((image, index) => {
+          const item = document.createElement("div");
+          item.className = "order-item";
+          item.dataset.publicId = image.public_id;
+
+          const img = document.createElement("img");
+          img.src = image.secure_url;
+          img.alt = state.currentLabel || "Photo chantier";
+          img.loading = "lazy";
+
+          const badge = document.createElement("div");
+          badge.className = "order-index";
+          badge.textContent = `${index + 1}`;
+
+          item.appendChild(img);
+          item.appendChild(badge);
+          orderGrid.appendChild(item);
+        });
+      }
+
+      function getOrderedPublicIds() {
+        return Array.from(orderGrid.children)
+          .map((item) => item.dataset.publicId)
+          .filter(Boolean);
+      }
+
+      function syncStateFromDom() {
+        const orderedIds = getOrderedPublicIds();
+        const lookup = new Map(state.images.map((image) => [image.public_id, image]));
+        state.images = orderedIds.map((id) => lookup.get(id)).filter(Boolean);
+        updateOrderIndexes();
+      }
+
+      async function loadImagesForFolder() {
+        if (!state.currentFolder) {
+          return;
+        }
+        orderStatus.textContent = "Chargement des photos...";
+        orderGrid.innerHTML = "";
+        orderEmpty.classList.add("hidden");
+
+        try {
+          const response = await fetch(
+            `${LIST_IMAGES_ENDPOINT}?folder=${encodeURIComponent(state.currentFolder)}`
+          );
+          if (!response.ok) {
+            orderStatus.textContent = "Erreur lors du chargement des photos.";
+            return;
+          }
+
+          const data = await response.json();
+          const items = Array.isArray(data?.items) ? data.items : [];
+          const normalized = items.map((item) => ({
+            public_id: item.public_id,
+            secure_url: item.secure_url,
+            created_at: item.created_at,
+            position: parsePosition(item.position),
+          }));
+
+          state.hasManualOrder = detectManualOrder(normalized);
+          state.images = sortImages(normalized);
+          renderOrderGrid();
+          orderStatus.textContent = "";
+        } catch (error) {
+          orderStatus.textContent = "Erreur lors du chargement des photos.";
+        }
+      }
+
+      async function saveOrderPayload(items) {
+        if (!items.length) {
+          return false;
+        }
+        try {
+          const response = await fetch(SAVE_ORDER_ENDPOINT, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ items }),
+          });
+          return response.ok;
+        } catch (error) {
+          return false;
+        }
+      }
+
+      async function saveCurrentOrder() {
+        if (!state.images.length) {
+          orderStatus.textContent = "Aucune photo a enregistrer.";
+          return;
+        }
+        orderStatus.textContent = "Enregistrement de l'ordre...";
+        saveOrderButton.disabled = true;
+        saveOrderButton.textContent = "ENREGISTREMENT...";
+
+        const orderedIds = getOrderedPublicIds();
+        const payload = orderedIds.map((id, index) => ({
+          public_id: id,
+          position: index + 1,
+        }));
+
+        const success = await saveOrderPayload(payload);
+
+        saveOrderButton.disabled = false;
+        saveOrderButton.textContent = "ENREGISTRER L'ORDRE";
+
+        if (!success) {
+          orderStatus.textContent = "Erreur lors de l'enregistrement.";
+          return;
+        }
+
+        state.images = state.images.map((image) => {
+          const idx = orderedIds.indexOf(image.public_id);
+          return { ...image, position: idx + 1 };
+        });
+        state.hasManualOrder = true;
+        state.images = sortImages(state.images);
+        renderOrderGrid();
+        orderStatus.textContent = "Ordre sauvegarde.";
+      }
+
+      async function assignPositionAfterUpload(uploadedAsset) {
+        if (!uploadedAsset?.public_id) {
+          return;
+        }
+
+        const existing = state.images.slice();
+        const hasFullPositions = detectManualOrder(existing);
+        if (!hasFullPositions) {
+          const orderedIds = getOrderedPublicIds();
+          const orderedImages = orderedIds
+            .map((id) => existing.find((image) => image.public_id === id))
+            .filter(Boolean);
+
+          const baseImages = orderedImages.length
+            ? orderedImages
+            : existing.slice().sort((a, b) => {
+                return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+              });
+
+          const updatedImages = baseImages.concat({
+            ...uploadedAsset,
+            position: baseImages.length + 1,
+          });
+          const payload = updatedImages.map((image, index) => ({
+            public_id: image.public_id,
+            position: index + 1,
+          }));
+          const success = await saveOrderPayload(payload);
+          if (success) {
+            state.images = updatedImages.map((image, index) => ({
+              ...image,
+              position: index + 1,
+            }));
+            state.hasManualOrder = true;
+            renderOrderGrid();
+          }
+          return;
+        }
+
+        const maxPosition = existing.reduce((max, image) => {
+          return Number.isFinite(image.position) ? Math.max(max, image.position) : max;
+        }, 0);
+        const nextPosition = maxPosition + 1;
+        const success = await saveOrderPayload([
+          { public_id: uploadedAsset.public_id, position: nextPosition },
+        ]);
+        if (success) {
+          state.images = sortImages(
+            existing.concat({ ...uploadedAsset, position: nextPosition })
+          );
+          renderOrderGrid();
         }
       }
 
@@ -482,7 +798,23 @@
               continue;
             }
 
+            let uploadedAsset = null;
+            try {
+              const data = await response.json();
+              uploadedAsset = {
+                public_id: data?.public_id,
+                secure_url: data?.secure_url || data?.url,
+                created_at: data?.created_at,
+              };
+            } catch (parseError) {
+              uploadedAsset = null;
+            }
+
             uploadedCount += 1;
+
+            if (uploadedAsset?.public_id) {
+              await assignPositionAfterUpload(uploadedAsset);
+            }
           } catch (error) {
             skippedCount += 1;
           }
@@ -510,6 +842,94 @@
         }
       }
 
+      const dragState = {
+        pointerId: null,
+        longPressTimer: null,
+        draggingEl: null,
+        startX: 0,
+        startY: 0,
+        active: false,
+      };
+
+      function clearDragState() {
+        if (dragState.longPressTimer) {
+          clearTimeout(dragState.longPressTimer);
+        }
+        dragState.longPressTimer = null;
+        dragState.pointerId = null;
+        dragState.active = false;
+        if (dragState.draggingEl) {
+          dragState.draggingEl.classList.remove("dragging");
+        }
+        dragState.draggingEl = null;
+      }
+
+      function startDrag(target) {
+        dragState.active = true;
+        dragState.draggingEl = target;
+        target.classList.add("dragging");
+      }
+
+      function handlePointerDown(event) {
+        const target = event.target.closest(".order-item");
+        if (!target) {
+          return;
+        }
+
+        dragState.pointerId = event.pointerId;
+        dragState.startX = event.clientX;
+        dragState.startY = event.clientY;
+        dragState.longPressTimer = setTimeout(() => startDrag(target), 320);
+      }
+
+      function handlePointerMove(event) {
+        if (dragState.pointerId !== event.pointerId) {
+          return;
+        }
+
+        if (!dragState.active) {
+          const deltaX = event.clientX - dragState.startX;
+          const deltaY = event.clientY - dragState.startY;
+          if (Math.hypot(deltaX, deltaY) > 6 && dragState.longPressTimer) {
+            clearTimeout(dragState.longPressTimer);
+            dragState.longPressTimer = null;
+          }
+          return;
+        }
+
+        event.preventDefault();
+        const element = document.elementFromPoint(event.clientX, event.clientY);
+        const overItem = element ? element.closest(".order-item") : null;
+        if (!overItem || overItem === dragState.draggingEl) {
+          return;
+        }
+
+        const items = Array.from(orderGrid.children);
+        const draggingIndex = items.indexOf(dragState.draggingEl);
+        const overIndex = items.indexOf(overItem);
+        if (draggingIndex === -1 || overIndex === -1) {
+          return;
+        }
+
+        if (overIndex > draggingIndex) {
+          orderGrid.insertBefore(dragState.draggingEl, overItem.nextSibling);
+        } else {
+          orderGrid.insertBefore(dragState.draggingEl, overItem);
+        }
+        updateOrderIndexes();
+      }
+
+      function handlePointerUp(event) {
+        if (dragState.pointerId !== event.pointerId) {
+          return;
+        }
+
+        if (dragState.active) {
+          syncStateFromDom();
+        }
+        clearDragState();
+      }
+
       document.getElementById("backToCategories").addEventListener("click", () => {
         showView("category");
       });
@@ -524,6 +944,13 @@
 
       uploadButton.addEventListener("click", openUploadWidget);
 
+      saveOrderButton.addEventListener("click", saveCurrentOrder);
+
+      orderGrid.addEventListener("pointerdown", handlePointerDown);
+      orderGrid.addEventListener("pointermove", handlePointerMove);
+      orderGrid.addEventListener("pointerup", handlePointerUp);
+      orderGrid.addEventListener("pointercancel", handlePointerUp);
+
       fileInput.addEventListener("change", (event) => {
         const files = Array.from(event.target.files || []);
         if (!files.length) {
@@ -535,6 +962,9 @@
       document.addEventListener(
         "touchmove",
         (event) => {
+          if (orderScroll && orderScroll.contains(event.target)) {
+            return;
+          }
           event.preventDefault();
         },
         { passive: false }
@@ -544,4 +974,5 @@
     </script>
   </body>
 </html>
+
 
