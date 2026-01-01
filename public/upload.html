@@ -604,16 +604,26 @@
         if (!state.currentFolder) {
           return;
         }
+        const endpoint = `${LIST_IMAGES_ENDPOINT}?folder=${encodeURIComponent(
+          state.currentFolder
+        )}`;
         orderStatus.textContent = "Chargement des photos...";
         orderGrid.innerHTML = "";
         orderEmpty.classList.add("hidden");
 
         try {
-          const response = await fetch(
-            `${LIST_IMAGES_ENDPOINT}?folder=${encodeURIComponent(state.currentFolder)}`
-          );
+          const response = await fetch(endpoint);
           if (!response.ok) {
-            orderStatus.textContent = "Erreur lors du chargement des photos.";
+            const errorText = await response.text();
+            console.error("Cloudinary list error", {
+              folder: state.currentFolder,
+              endpoint,
+              status: response.status,
+              statusText: response.statusText,
+              body: errorText,
+            });
+            orderStatus.textContent =
+              "Erreur lors du chargement des photos. Verifie la connexion ou la config Cloudinary.";
             return;
           }
 
@@ -631,7 +641,13 @@
           renderOrderGrid();
           orderStatus.textContent = "";
         } catch (error) {
-          orderStatus.textContent = "Erreur lors du chargement des photos.";
+          console.error("Cloudinary list error", {
+            folder: state.currentFolder,
+            endpoint,
+            error,
+          });
+          orderStatus.textContent =
+            "Erreur lors du chargement des photos. Verifie la connexion ou la config Cloudinary.";
         }
       }
 

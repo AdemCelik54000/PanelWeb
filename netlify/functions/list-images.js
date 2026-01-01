@@ -10,6 +10,8 @@ exports.handler = async (event) => {
     return buildResponse(400, { error: "missing_folder" });
   }
 
+  const prefix = folder.endsWith("/") ? folder : `${folder}/`;
+
   const cloudName = process.env.CLOUDINARY_CLOUD_NAME;
   const apiKey = process.env.CLOUDINARY_API_KEY;
   const apiSecret = process.env.CLOUDINARY_API_SECRET;
@@ -28,7 +30,7 @@ exports.handler = async (event) => {
     do {
       const params = new URLSearchParams({
         type: "upload",
-        prefix: folder,
+        prefix,
         max_results: "500",
         context: "true",
       });
