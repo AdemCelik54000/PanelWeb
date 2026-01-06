@@ -611,6 +611,7 @@
       const ADMIN_LOGIN_ENDPOINT = "/.netlify/functions/admin-login";
       const ADMIN_TENANTS_ENDPOINT = "/.netlify/functions/admin-tenants";
       const ADMIN_UPDATE_ENDPOINT = "/.netlify/functions/admin-update-tenant";
+      const DEFAULT_TENANT_ID = "celikbatiment";
 
       const AUTH_STORAGE_KEY = "site_session_token";
 
@@ -672,7 +673,11 @@
         loginOverlay.classList.toggle("active", locked);
         loginOverlay.setAttribute("aria-hidden", locked ? "false" : "true");
         if (locked) {
-          loginIdentifier.focus();
+          if (loginIdentifier) {
+            loginIdentifier.focus();
+          } else if (loginPassword) {
+            loginPassword.focus();
+          }
         }
       }
 
@@ -688,6 +693,9 @@
       }
 
       function setAdminModeEnabled(enabled) {
+        if (!toggleAdminMode || !loginIdentifier) {
+          return;
+        }
         isAdminMode = Boolean(enabled);
         toggleAdminMode.textContent = isAdminMode ? "Mode client" : "Mode admin";
         loginIdentifier.placeholder = isAdminMode ? "Identifiant admin" : "Identifiant";
@@ -953,7 +961,9 @@
 
       loginForm.addEventListener("submit", (event) => {
         event.preventDefault();
-        const identifier = loginIdentifier.value.trim();
+        const identifier = loginIdentifier
+          ? loginIdentifier.value.trim()
+          : DEFAULT_TENANT_ID;
         const password = loginPassword.value.trim();
         if (!identifier || !password) {
           showLoginError("Identifiant et mot de passe requis.");
@@ -968,9 +978,11 @@
         }
       });
 
-      toggleAdminMode.addEventListener("click", () => {
-        setAdminModeEnabled(!isAdminMode);
-      });
+      if (toggleAdminMode) {
+        toggleAdminMode.addEventListener("click", () => {
+          setAdminModeEnabled(!isAdminMode);
+        });
+      }
 
       let categories = [];
       let isAdminMode = false;
