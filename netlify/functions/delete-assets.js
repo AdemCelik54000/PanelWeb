@@ -4,46 +4,18 @@ const buildResponse = (statusCode, payload) => ({
   body: JSON.stringify(payload),
 });
 
-const getAuthorizationHeader = (headers) =>
-  headers?.authorization || headers?.Authorization || "";
+const { getAuthContext } = require("./_auth");
 
-const isAuthorized = (event) => {
-  const expectedBasic = process.env.SITE_BASIC_AUTH;
-  if (!expectedBasic) {
-    return true;
-  }
-
-  const authHeader = getAuthorizationHeader(event.headers);
-  if (!authHeader.startsWith("Basic ")) {
-    return false;
-  }
-
-  const base64Value = authHeader.slice("Basic ".length).trim();
-  let decoded = "";
-  try {
-    decoded = Buffer.from(base64Value, "base64").toString("utf8");
-  } catch (error) {
-    return false;
-  }
-
-  return decoded === expectedBasic;
-};
-
-const unauthorizedResponse = () => ({
-  statusCode: 401,
-  headers: {
-    "Content-Type": "application/json",
-    "WWW-Authenticate": 'Basic realm="Protected"',
-  },
-  body: JSON.stringify({ error: "unauthorized" }),
-});
+const unauthorizedResponse = () =>
+  buildResponse(401, { error: "unauthorized" });
 
 exports.handler = async (event) => {
   if (event.httpMethod !== "POST") {
     return buildResponse(405, { error: "method_not_allowed" });
   }
 
-  if (!isAuthorized(event)) {
+  const auth = getAuthContext(event);
+  if (!auth) {
     return unauthorizedResponse();
   }
 
@@ -72,8 +44,18 @@ exports.handler = async (event) => {
     return buildResponse(500, { error: "missing_cloudinary_env", missing });
   }
 
-  const auth = Buffer.from(`${apiKey}:${apiSecret}`).toString("base64");
-  const grouped = items.reduce((acc, item) => {
+  const cloudAuth = Buffer.from(`${apiKey}:${apiSecret}`).toString("base64");
+  const tenantPrefix = `${auth.tenant.folderRoot}/`;
+  const validatedItems = items.filter((item) => {
+    if (!item?.public_id) {
+      return false;
+    }
+    return String(item.public_id).startsWith(tenantPrefix);
+  });
+  if (validatedItems.length !== items.length) {
+    return buildResponse(400, { error: "invalid_item" });
+  }
+  const grouped = validatedItems.reduce((acc, item) => {
     const type = item?.resource_type === "video" ? "video" : "image";
     if (!item?.public_id) {
       return acc;
@@ -93,7 +75,7 @@ exports.handler = async (event) => {
       const response = await fetch(url, {
         method: "DELETE",
         headers: {
-          Authorization: `Basic ${auth}`,
+          Authorization: `Basic ${cloudAuth}`,
           "Content-Type": "application/x-www-form-urlencoded",
         },
         body,

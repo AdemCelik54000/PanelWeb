@@ -6,39 +6,11 @@ const buildResponse = (statusCode, payload) => ({
   body: JSON.stringify(payload),
 });
 
-const getAuthorizationHeader = (headers) =>
-  headers?.authorization || headers?.Authorization || "";
+const { getAuthContext } = require("./_auth");
+const { isAllowedFolder, buildTenantFolder } = require("./_tenants");
 
-const isAuthorized = (event) => {
-  const expectedBasic = process.env.SITE_BASIC_AUTH;
-  if (!expectedBasic) {
-    return true;
-  }
-
-  const authHeader = getAuthorizationHeader(event.headers);
-  if (!authHeader.startsWith("Basic ")) {
-    return false;
-  }
-
-  const base64Value = authHeader.slice("Basic ".length).trim();
-  let decoded = "";
-  try {
-    decoded = Buffer.from(base64Value, "base64").toString("utf8");
-  } catch (error) {
-    return false;
-  }
-
-  return decoded === expectedBasic;
-};
-
-const unauthorizedResponse = () => ({
-  statusCode: 401,
-  headers: {
-    "Content-Type": "application/json",
-    "WWW-Authenticate": 'Basic realm="Protected"',
-  },
-  body: JSON.stringify({ error: "unauthorized" }),
-});
+const unauthorizedResponse = () =>
+  buildResponse(401, { error: "unauthorized" });
 
 const signParams = (params, apiSecret) => {
   const entries = Object.entries(params)
@@ -54,7 +26,8 @@ exports.handler = async (event) => {
     return buildResponse(405, { error: "method_not_allowed" });
   }
 
-  if (!isAuthorized(event)) {
+  const auth = getAuthContext(event);
+  if (!auth) {
     return unauthorizedResponse();
   }
 
@@ -78,13 +51,15 @@ exports.handler = async (event) => {
     return buildResponse(500, { error: "missing_cloudinary_env", missing });
   }
 
-  const folder = payload?.folder;
+  const folderKey = payload?.folder;
   const uploadPreset = payload?.upload_preset;
-  const tags = payload?.tags;
-  if (!folder || !uploadPreset) {
+  const hash = payload?.hash;
+  if (!uploadPreset || !isAllowedFolder(auth.tenant, folderKey)) {
     return buildResponse(400, { error: "missing_params" });
   }
 
+  const folder = buildTenantFolder(auth.tenant, folderKey);
+  const tags = hash ? `sha1_${auth.tenant.folderRoot}_${hash}` : "";
   const timestamp = Math.floor(Date.now() / 1000);
   const signature = signParams(
     {
@@ -101,5 +76,7 @@ exports.handler = async (event) => {
     timestamp,
     api_key: apiKey,
     cloud_name: cloudName,
+    folder,
+    tags,
   });
 };
