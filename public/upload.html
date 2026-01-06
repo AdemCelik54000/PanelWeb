@@ -470,6 +470,7 @@
         <span class="tag">Upload chantier</span>
         <h1>Ajouter des photos</h1>
         <p>Sélectionnez une catégorie, puis la sous-catégorie si besoin.</p>
+        <button class="btn btn-back" type="button" id="logoutButton">Deconnexion</button>
       </header>
 
       <button class="btn btn-save hidden" type="button" id="saveOrderButton">
@@ -550,6 +551,7 @@
       const loginIdentifier = document.getElementById("loginIdentifier");
       const loginPassword = document.getElementById("loginPassword");
       const loginError = document.getElementById("loginError");
+      const logoutButton = document.getElementById("logoutButton");
 
       function getAuthToken() {
         return sessionStorage.getItem(AUTH_STORAGE_KEY);
@@ -561,6 +563,24 @@
 
       function clearAuthToken() {
         sessionStorage.removeItem(AUTH_STORAGE_KEY);
+      }
+
+      function logout() {
+        clearAuthToken();
+        categories = [];
+        state.currentCategory = null;
+        state.currentFolder = null;
+        state.currentLabel = null;
+        state.images = [];
+        state.hasManualOrder = false;
+        state.selectMode = false;
+        state.selectedIds = new Set();
+        orderGrid.innerHTML = "";
+        orderEmpty.classList.add("hidden");
+        categoryButtons.innerHTML = "";
+        subcategoryButtons.innerHTML = "";
+        showLoginError("");
+        setLocked(true);
       }
 
       function setLocked(locked) {
@@ -854,6 +874,21 @@
         return `https://res.cloudinary.com/${CLOUDINARY_CONFIG.cloudName}/video/upload/so_0,f_jpg/${publicId}.jpg`;
       }
 
+      function buildImagePreviewUrl(url) {
+        if (!url) {
+          return "";
+        }
+        const marker = "/image/upload/";
+        const idx = url.indexOf(marker);
+        if (idx === -1) {
+          return url;
+        }
+        const transform = "f_auto,q_auto:eco,w_480,h_480,c_fill";
+        return `${url.slice(0, idx + marker.length)}${transform}/${url.slice(
+          idx + marker.length
+        )}`;
+      }
+
       function detectManualOrder(items) {
         return items.length > 0 && items.every((item) => Number.isFinite(item.position));
       }
@@ -896,7 +931,10 @@
           item.dataset.publicId = image.public_id;
 
           const img = document.createElement("img");
-          img.src = image.kind === "video" ? buildVideoThumbnail(image.public_id) : image.secure_url;
+          img.src =
+            image.kind === "video"
+              ? buildVideoThumbnail(image.public_id)
+              : buildImagePreviewUrl(image.secure_url);
           img.alt = state.currentLabel || "Photo chantier";
           img.loading = "lazy";
 
@@ -1563,6 +1601,7 @@
       selectModeButton.addEventListener("click", toggleSelectMode);
       deleteSelectedButton.addEventListener("click", deleteSelectedAssets);
       downloadSelectedButton.addEventListener("click", downloadSelectedAssets);
+      logoutButton.addEventListener("click", logout);
 
       orderGrid.addEventListener("pointerdown", handlePointerDown);
       orderGrid.addEventListener("pointermove", handlePointerMove);
@@ -1598,6 +1637,7 @@
     </script>
   </body>
 </html>
+
 
 
 
