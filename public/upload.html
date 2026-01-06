@@ -427,54 +427,6 @@
         font-size: 14px;
         padding: 24px 12px;
       }
-      .admin-list {
-        display: grid;
-        gap: 12px;
-        margin-top: 12px;
-      }
-
-      .admin-item {
-        border: 1px solid var(--border);
-        border-radius: 12px;
-        padding: 12px;
-        background: #ffffff;
-        display: grid;
-        gap: 8px;
-      }
-
-      .admin-item-header {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 8px;
-        font-size: 14px;
-        font-weight: 700;
-      }
-
-      .admin-input {
-        border-radius: 10px;
-        border: 1px solid rgba(15, 23, 42, 0.2);
-        padding: 10px 12px;
-        font-size: 14px;
-        font-family: inherit;
-      }
-
-      .admin-actions {
-        display: flex;
-        gap: 8px;
-      }
-
-      .admin-output {
-        width: 100%;
-        min-height: 140px;
-        resize: vertical;
-        border-radius: 10px;
-        border: 1px solid rgba(15, 23, 42, 0.2);
-        padding: 10px 12px;
-        font-size: 12px;
-        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
-          "Liberation Mono", "Courier New", monospace;
-      }
       @media (min-width: 680px) {
         .shell {
           padding: calc(20px + env(safe-area-inset-top)) 16px
@@ -510,9 +462,6 @@
           <button class="login-btn" type="submit">Se connecter</button>
         </form>
         <div class="login-error" id="loginError" role="alert"></div>
-        <button class="btn btn-select" type="button" id="toggleAdminMode">
-          Mode admin
-        </button>
       </div>
     </div>
     <div class="shell">
@@ -579,13 +528,7 @@
         <div class="helper">Appui long pour deplacer une image.</div>
         <div class="status" id="orderStatus" aria-live="polite"></div>
       </section>
-      <section id="adminView" class="card hidden">
-        <div class="section-title">Administration</div>
-        <div class="status" id="adminStatus" aria-live="polite"></div>
-        <div class="admin-list" id="adminTenants"></div>
-        <div class="helper">Mise a jour : recopier le JSON genere dans TENANTS_JSON sur Netlify.</div>
-        <textarea class="admin-output" id="adminJsonOutput" readonly></textarea>
-      </section>    </div>
+    </div>
 
     <script>
       const CLOUDINARY_CONFIG = {
@@ -599,9 +542,6 @@
       const SIGN_UPLOAD_ENDPOINT = "/.netlify/functions/sign-upload";
       const LOGIN_ENDPOINT = "/.netlify/functions/login";
       const TENANT_CONFIG_ENDPOINT = "/.netlify/functions/tenant-config";
-      const ADMIN_LOGIN_ENDPOINT = "/.netlify/functions/admin-login";
-      const ADMIN_TENANTS_ENDPOINT = "/.netlify/functions/admin-tenants";
-      const ADMIN_UPDATE_ENDPOINT = "/.netlify/functions/admin-update-tenant";
       const DEFAULT_TENANT_ID = "celikbatiment";
 
       const AUTH_STORAGE_KEY = "site_session_token";
@@ -612,7 +552,6 @@
       const loginPassword = document.getElementById("loginPassword");
       const loginError = document.getElementById("loginError");
       const logoutButton = document.getElementById("logoutButton");
-      const toggleAdminMode = document.getElementById("toggleAdminMode");
 
       function getAuthToken() {
         return sessionStorage.getItem(AUTH_STORAGE_KEY);
@@ -629,7 +568,6 @@
       function logout() {
         clearAuthToken();
         categories = [];
-        isAdminSession = false;
         isAuthenticated = false;
         state.currentCategory = null;
         state.currentFolder = null;
@@ -642,9 +580,6 @@
         orderEmpty.classList.add("hidden");
         categoryButtons.innerHTML = "";
         subcategoryButtons.innerHTML = "";
-        adminTenants.innerHTML = "";
-        adminJsonOutput.value = "";
-        setAdminModeEnabled(false);
         showLoginError("");
         setLocked(true);
         try {
@@ -681,19 +616,6 @@
         isAuthenticated = false;
         showLoginError(message || "Erreur d'identification.");
         setLocked(true);
-      }
-
-      function setAdminModeEnabled(enabled) {
-        if (!toggleAdminMode || !loginIdentifier) {
-          return;
-        }
-        isAdminMode = Boolean(enabled);
-        toggleAdminMode.textContent = isAdminMode ? "Mode client" : "Mode admin";
-        loginIdentifier.placeholder = isAdminMode ? "Identifiant admin" : "Identifiant";
-        const submitButton = loginForm.querySelector("button[type=\"submit\"]");
-        if (submitButton) {
-          submitButton.textContent = isAdminMode ? "Connexion admin" : "Se connecter";
-        }
       }
 
       async function fetchWithAuth(url, options = {}) {
@@ -735,54 +657,12 @@
           }
 
           setAuthToken(data.token);
-          isAdminSession = false;
           isAuthenticated = true;
           categories = Array.isArray(data?.tenant?.folders) ? data.tenant.folders : [];
           setLocked(false);
           renderCategories();
           showView("category");
           loginIdentifier.value = "";
-        } catch (error) {
-          handleAuthError("Erreur d'identification.");
-        } finally {
-          if (submitButton) {
-            submitButton.disabled = false;
-          }
-        }
-      }
-
-      async function authenticateAdmin(identifier, password) {
-        const submitButton = loginForm.querySelector("button[type=\"submit\"]");
-        if (submitButton) {
-          submitButton.disabled = true;
-        }
-
-        try {
-          const response = await fetch(ADMIN_LOGIN_ENDPOINT, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ identifier, password }),
-          });
-
-          if (!response.ok) {
-            handleAuthError("Erreur d'identification.");
-            return;
-          }
-
-          const data = await response.json();
-          if (!data?.token) {
-            handleAuthError("Erreur d'identification.");
-            return;
-          }
-
-          setAuthToken(data.token);
-          isAdminSession = true;
-          isAuthenticated = true;
-          categories = [];
-          setLocked(false);
-          showView("admin");
-          loginIdentifier.value = "";
-          await loadAdminTenants();
         } catch (error) {
           handleAuthError("Erreur d'identification.");
         } finally {
@@ -807,7 +687,6 @@
           });
           if (tenantResponse.ok) {
             const data = await tenantResponse.json();
-            isAdminSession = false;
             isAuthenticated = true;
             categories = Array.isArray(data?.tenant?.folders) ? data.tenant.folders : [];
             setLocked(false);
@@ -816,116 +695,9 @@
             return;
           }
 
-          const adminResponse = await fetch(ADMIN_TENANTS_ENDPOINT, {
-            headers: { Authorization: `Bearer ${token}` },
-          });
-          if (adminResponse.ok) {
-            isAdminSession = true;
-            isAuthenticated = true;
-            categories = [];
-            setLocked(false);
-            showView("admin");
-            await loadAdminTenants();
-            return;
-          }
-
           handleAuthError("Session expiree.");
         } catch (error) {
           handleAuthError("Session expiree.");
-        }
-      }
-
-      function renderAdminTenants(tenants) {
-        adminTenants.innerHTML = "";
-        if (!tenants.length) {
-          adminStatus.textContent = "Aucun client trouve.";
-          return;
-        }
-
-        tenants.forEach((tenant) => {
-          const item = document.createElement("div");
-          item.className = "admin-item";
-
-          const header = document.createElement("div");
-          header.className = "admin-item-header";
-          header.textContent = tenant.id || "client";
-
-          const meta = document.createElement("div");
-          meta.className = "helper";
-          const folderRoot = tenant.folder_root || "";
-          const count = Array.isArray(tenant.folders) ? tenant.folders.length : 0;
-          meta.textContent =
-            "Dossiers: " + count + (folderRoot ? " | Root: " + folderRoot : "");
-
-          const input = document.createElement("input");
-          input.type = "password";
-          input.placeholder = "Nouveau mot de passe";
-          input.className = "admin-input";
-
-          const actions = document.createElement("div");
-          actions.className = "admin-actions";
-
-          const button = document.createElement("button");
-          button.type = "button";
-          button.className = "btn btn-secondary";
-          button.textContent = "Changer le mot de passe";
-          button.addEventListener("click", () =>
-            updateTenantPassword(tenant.id, input.value)
-          );
-
-          actions.appendChild(button);
-          item.appendChild(header);
-          item.appendChild(meta);
-          item.appendChild(input);
-          item.appendChild(actions);
-          adminTenants.appendChild(item);
-        });
-      }
-
-      async function loadAdminTenants() {
-        adminStatus.textContent = "Chargement...";
-        adminJsonOutput.value = "";
-        adminTenants.innerHTML = "";
-
-        try {
-          const response = await fetchWithAuth(ADMIN_TENANTS_ENDPOINT);
-          if (!response.ok) {
-            adminStatus.textContent = "Erreur de chargement.";
-            return;
-          }
-          const data = await response.json();
-          const tenants = Array.isArray(data?.tenants) ? data.tenants : [];
-          adminStatus.textContent = "";
-          renderAdminTenants(tenants);
-        } catch (error) {
-          adminStatus.textContent = "Erreur de chargement.";
-        }
-      }
-
-      async function updateTenantPassword(id, newPassword) {
-        if (!id || !newPassword) {
-          adminStatus.textContent = "Identifiant ou mot de passe manquant.";
-          return;
-        }
-
-        adminStatus.textContent = "Mise a jour en cours...";
-        try {
-          const response = await fetchWithAuth(ADMIN_UPDATE_ENDPOINT, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ id, new_password: newPassword }),
-          });
-          if (!response.ok) {
-            adminStatus.textContent = "Erreur lors de la mise a jour.";
-            return;
-          }
-          const data = await response.json();
-          const tenants = Array.isArray(data?.tenants) ? data.tenants : [];
-          adminJsonOutput.value = data?.updated_tenants_json || "";
-          adminStatus.textContent = "JSON genere. Collez-le dans TENANTS_JSON.";
-          renderAdminTenants(tenants);
-        } catch (error) {
-          adminStatus.textContent = "Erreur lors de la mise a jour.";
         }
       }
 
@@ -963,22 +735,10 @@
         }
         loginPassword.value = "";
         showLoginError("");
-        if (isAdminMode) {
-          authenticateAdmin(identifier, password);
-        } else {
-          authenticate(identifier, password);
-        }
+        authenticate(identifier, password);
       });
 
-      if (toggleAdminMode) {
-        toggleAdminMode.addEventListener("click", () => {
-          setAdminModeEnabled(!isAdminMode);
-        });
-      }
-
       let categories = [];
-      let isAdminMode = false;
-      let isAdminSession = false;
       let isAuthenticated = false;
 
       const state = {
@@ -995,7 +755,6 @@
       const subcategoryView = document.getElementById("subcategoryView");
       const uploadView = document.getElementById("uploadView");
       const orderView = document.getElementById("orderView");
-      const adminView = document.getElementById("adminView");
       const categoryButtons = document.getElementById("categoryButtons");
       const subcategoryButtons = document.getElementById("subcategoryButtons");
       const subcategoryTitle = document.getElementById("subcategoryTitle");
@@ -1012,9 +771,6 @@
       const orderGrid = document.getElementById("orderGrid");
       const orderStatus = document.getElementById("orderStatus");
       const orderEmpty = document.getElementById("orderEmpty");
-      const adminTenants = document.getElementById("adminTenants");
-      const adminStatus = document.getElementById("adminStatus");
-      const adminJsonOutput = document.getElementById("adminJsonOutput");
 
       function renderCategories() {
         categoryButtons.innerHTML = "";
@@ -1050,7 +806,6 @@
         saveOrderButton.classList.toggle("hidden", !inUpload || state.selectMode);
         selectionActions.classList.toggle("hidden", !inUpload || !state.selectMode);
         selectModeButton.classList.toggle("hidden", !inUpload);
-        adminView.classList.toggle("hidden", view !== "admin");
       }
 
       function selectCategory(categoryId) {
@@ -1906,7 +1661,6 @@
       state.selectMode = false;
       resetSelection();
       updateSelectionModeUI();
-      setAdminModeEnabled(false);
       setLocked(true);
       bootstrapAuth();
 
