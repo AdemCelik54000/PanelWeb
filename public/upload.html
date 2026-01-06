@@ -629,6 +629,7 @@
         clearAuthToken();
         categories = [];
         isAdminSession = false;
+        isAuthenticated = false;
         state.currentCategory = null;
         state.currentFolder = null;
         state.currentLabel = null;
@@ -650,6 +651,11 @@
         } catch (error) {
           // ignore history errors
         }
+        try {
+          location.replace("/upload.html");
+        } catch (error) {
+          // ignore navigation errors
+        }
       }
 
       function setLocked(locked) {
@@ -667,6 +673,7 @@
 
       function handleAuthError(message) {
         clearAuthToken();
+        isAuthenticated = false;
         showLoginError(message || "Erreur d'identification.");
         setLocked(true);
       }
@@ -721,6 +728,7 @@
 
           setAuthToken(data.token);
           isAdminSession = false;
+          isAuthenticated = true;
           categories = Array.isArray(data?.tenant?.folders) ? data.tenant.folders : [];
           setLocked(false);
           renderCategories();
@@ -761,6 +769,7 @@
 
           setAuthToken(data.token);
           isAdminSession = true;
+          isAuthenticated = true;
           categories = [];
           setLocked(false);
           showView("admin");
@@ -778,17 +787,20 @@
       async function bootstrapAuth() {
         const token = getAuthToken();
         if (!token) {
+          isAuthenticated = false;
           setLocked(true);
           return;
         }
 
         try {
+          isAuthenticated = false;
           const tenantResponse = await fetch(TENANT_CONFIG_ENDPOINT, {
             headers: { Authorization: `Bearer ${token}` },
           });
           if (tenantResponse.ok) {
             const data = await tenantResponse.json();
             isAdminSession = false;
+            isAuthenticated = true;
             categories = Array.isArray(data?.tenant?.folders) ? data.tenant.folders : [];
             setLocked(false);
             renderCategories();
@@ -801,6 +813,7 @@
           });
           if (adminResponse.ok) {
             isAdminSession = true;
+            isAuthenticated = true;
             categories = [];
             setLocked(false);
             showView("admin");
@@ -953,6 +966,7 @@
       let categories = [];
       let isAdminMode = false;
       let isAdminSession = false;
+      let isAuthenticated = false;
 
       const state = {
         currentCategory: null,
@@ -1882,8 +1896,13 @@
 
       window.addEventListener("pageshow", () => {
         if (!getAuthToken()) {
+          isAuthenticated = false;
           setLocked(true);
           showLoginError("");
+          return;
+        }
+        if (!isAuthenticated) {
+          bootstrapAuth();
         }
       });
     </script>
