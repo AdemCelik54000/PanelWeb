@@ -71,7 +71,7 @@ const getBearerToken = (headers) => {
 const getAuthContext = (event) => {
   const token = getBearerToken(event.headers || {});
   const payload = verifyToken(token);
-  if (!payload) {
+  if (!payload || payload.role !== "tenant") {
     return null;
   }
   const tenant = getTenantById(payload.tid);
@@ -81,7 +81,17 @@ const getAuthContext = (event) => {
   return { tenant, payload };
 };
 
+const getAdminContext = (event) => {
+  const token = getBearerToken(event.headers || {});
+  const payload = verifyToken(token);
+  if (!payload || payload.role !== "admin") {
+    return null;
+  }
+  return { payload };
+};
+
 module.exports = {
   signToken,
   getAuthContext,
+  getAdminContext,
 };

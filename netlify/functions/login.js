@@ -31,7 +31,7 @@ exports.handler = async (event) => {
   const exp = Math.floor(Date.now() / 1000) + 60 * 60 * 12;
   let token = "";
   try {
-    token = signToken({ tid: tenant.normalizedId, exp });
+    token = signToken({ tid: tenant.normalizedId, role: "tenant", exp });
   } catch (error) {
     return buildResponse(500, { error: "missing_auth_secret" });
   }

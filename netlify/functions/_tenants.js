@@ -88,6 +88,12 @@ const verifyPassword = (tenant, password) => {
   return timingSafeEqual(actualHash, expectedHash);
 };
 
+const createPasswordHash = (password) => {
+  const salt = crypto.randomBytes(16).toString("hex");
+  const hash = hashPassword(password, salt);
+  return { salt, hash };
+};
+
 const isAllowedFolder = (tenant, folderKey) => {
   const key = String(folderKey || "");
   if (!key || !tenant?.allowedFolders) {
@@ -109,4 +115,5 @@ module.exports = {
   isAllowedFolder,
   buildTenantFolder,
   normalizeTenantId,
+  createPasswordHash,
 };
