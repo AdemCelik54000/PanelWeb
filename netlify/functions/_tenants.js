@@ -58,6 +58,9 @@ const loadTenants = () => {
     }
     const folders = Array.isArray(tenant?.folders) ? tenant.folders : [];
     const allowedFolders = new Set(flattenFolders(folders));
+    const folderRoot = tenant.folder_root
+      ? String(tenant.folder_root)
+      : toSafeTenantFolder(tenant.id);
     tenants.set(normalizedId, {
       id: tenant.id,
       normalizedId,
@@ -65,7 +68,7 @@ const loadTenants = () => {
       password_salt: tenant.password_salt || "",
       folders,
       allowedFolders,
-      folderRoot: toSafeTenantFolder(tenant.id),
+      folderRoot,
     });
   });
   return tenants;
