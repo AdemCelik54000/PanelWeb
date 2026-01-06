@@ -863,7 +863,8 @@
           meta.className = "helper";
           const folderRoot = tenant.folder_root || "";
           const count = Array.isArray(tenant.folders) ? tenant.folders.length : 0;
-          meta.textContent = `Dossiers: ${count} ${folderRoot ? `| Root: ${folderRoot}` : ""}`;
+          meta.textContent =
+            "Dossiers: " + count + (folderRoot ? " | Root: " + folderRoot : "");
 
           const input = document.createElement("input");
           input.type = "password";
