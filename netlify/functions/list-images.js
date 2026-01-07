@@ -23,6 +23,9 @@ exports.handler = async (event) => {
   if (!auth) {
     return unauthorizedResponse();
   }
+  if (auth.isAdmin && !auth.targetTenantId) {
+    return buildResponse(400, { error: "missing_target_tenant" });
+  }
 
   const folderKey = event?.queryStringParameters?.folder;
   if (!isAllowedFolder(auth.tenant, folderKey)) {

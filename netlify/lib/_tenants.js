@@ -46,7 +46,7 @@ const loadTenantRecord = async (tenantId) => {
   const supabase = getSupabaseClient();
   const { data, error } = await supabase
     .from("tenants")
-    .select("id, folder_root, password_salt, password_hash")
+    .select("id, folder_root, password_salt, password_hash, role")
     .eq("id", tenantId)
     .maybeSingle();
   if (error) {
@@ -130,6 +130,7 @@ const getTenantById = async (id) => {
   const folderRoot = tenantRow.folder_root
     ? String(tenantRow.folder_root)
     : toSafeTenantFolder(tenantRow.id);
+  const role = tenantRow.role ? String(tenantRow.role) : "client";
 
   return {
     id: tenantRow.id,
@@ -139,7 +140,24 @@ const getTenantById = async (id) => {
     folders,
     allowedFolders,
     folderRoot,
+    role,
   };
+};
+
+const listTenants = async () => {
+  const supabase = getSupabaseClient();
+  const { data, error } = await supabase
+    .from("tenants")
+    .select("id, role")
+    .order("id", { ascending: true });
+  if (error) {
+    console.error("Supabase tenants list error", { error });
+    return [];
+  }
+  return (Array.isArray(data) ? data : []).map((tenant) => ({
+    id: tenant.id,
+    role: tenant.role ? String(tenant.role) : "client",
+  }));
 };
 
 const verifyPassword = (tenant, password) => {
@@ -174,6 +192,7 @@ const buildTenantFolder = (tenant, folderKey) => {
 
 module.exports = {
   getTenantById,
+  listTenants,
   verifyPassword,
   isAllowedFolder,
   buildTenantFolder,

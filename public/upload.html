@@ -98,6 +98,19 @@
         margin-top: 16px;
       }
 
+      .admin-card {
+        gap: 12px;
+      }
+
+      .admin-select {
+        border-radius: 10px;
+        border: 1px solid rgba(15, 23, 42, 0.2);
+        padding: 10px 12px;
+        font-size: 14px;
+        font-family: inherit;
+        background: #ffffff;
+      }
+
       .section-title {
         font-size: 15px;
         font-weight: 700;
@@ -480,6 +493,14 @@
         <p>Sélectionnez une catégorie, puis la sous-catégorie si besoin.</p>
       </header>
 
+      <section id="adminPanel" class="card admin-card hidden">
+        <div class="section-title">Choisir un client</div>
+        <select id="adminTenantSelect" class="admin-select">
+          <option value="">Selectionner un client</option>
+        </select>
+        <div class="helper" id="adminHelper">Connecte en admin.</div>
+      </section>
+
       <button class="btn btn-save hidden" type="button" id="saveOrderButton">
         ENREGISTRER L'ORDRE
       </button>
@@ -550,9 +571,11 @@
       const SIGN_UPLOAD_ENDPOINT = "/.netlify/functions/sign-upload";
       const LOGIN_ENDPOINT = "/.netlify/functions/login";
       const TENANT_CONFIG_ENDPOINT = "/.netlify/functions/tenant-config";
+      const TENANTS_LIST_ENDPOINT = "/.netlify/functions/tenants-list";
       const DEFAULT_TENANT_ID = "celikbatiment";
 
       const AUTH_STORAGE_KEY = "site_session_token";
+      const TENANT_OVERRIDE_STORAGE_KEY = "site_tenant_override";
 
       const loginOverlay = document.getElementById("loginOverlay");
       const loginForm = document.getElementById("loginForm");
@@ -560,6 +583,9 @@
       const loginPassword = document.getElementById("loginPassword");
       const loginError = document.getElementById("loginError");
       const logoutButton = document.getElementById("logoutButton");
+      const adminPanel = document.getElementById("adminPanel");
+      const adminTenantSelect = document.getElementById("adminTenantSelect");
+      const adminHelper = document.getElementById("adminHelper");
 
       function getAuthToken() {
         return sessionStorage.getItem(AUTH_STORAGE_KEY);
@@ -573,10 +599,25 @@
         sessionStorage.removeItem(AUTH_STORAGE_KEY);
       }
 
+      function getSelectedTenantId() {
+        return sessionStorage.getItem(TENANT_OVERRIDE_STORAGE_KEY) || "";
+      }
+
+      function setSelectedTenantId(tenantId) {
+        if (tenantId) {
+          sessionStorage.setItem(TENANT_OVERRIDE_STORAGE_KEY, tenantId);
+        } else {
+          sessionStorage.removeItem(TENANT_OVERRIDE_STORAGE_KEY);
+        }
+      }
+
       function logout() {
         clearAuthToken();
+        setSelectedTenantId("");
         categories = [];
         isAuthenticated = false;
+        isAdmin = false;
+        selectedTenantId = "";
         state.currentCategory = null;
         state.currentFolder = null;
         state.currentLabel = null;
@@ -632,12 +673,95 @@
         if (token) {
           headers.Authorization = `Bearer ${token}`;
         }
+        if (selectedTenantId) {
+          headers["X-Tenant-Id"] = selectedTenantId;
+        }
 
         const response = await fetch(url, { ...options, headers });
         if (response.status === 401) {
           handleAuthError("Session expiree.");
         }
         return response;
+      }
+
+      function setAdminMode(role) {
+        isAdmin = role === "admin";
+        if (!isAdmin) {
+          selectedTenantId = "";
+          setSelectedTenantId("");
+        }
+        if (adminPanel) {
+          adminPanel.classList.toggle("hidden", !isAdmin);
+        }
+        if (adminHelper) {
+          adminHelper.textContent = isAdmin
+            ? "Choisissez un client pour acceder aux dossiers."
+            : "";
+        }
+      }
+
+      function renderTenantOptions(options) {
+        if (!adminTenantSelect) {
+          return;
+        }
+        adminTenantSelect.innerHTML = "";
+        const placeholder = document.createElement("option");
+        placeholder.value = "";
+        placeholder.textContent = "Selectionner un client";
+        adminTenantSelect.appendChild(placeholder);
+        options.forEach((tenant) => {
+          const opt = document.createElement("option");
+          opt.value = tenant.id;
+          opt.textContent = tenant.id;
+          adminTenantSelect.appendChild(opt);
+        });
+        adminTenantSelect.value = selectedTenantId || "";
+      }
+
+      async function loadTenantOptions() {
+        if (!isAdmin) {
+          return;
+        }
+        try {
+          const response = await fetchWithAuth(TENANTS_LIST_ENDPOINT);
+          if (!response.ok) {
+            return;
+          }
+          const data = await response.json();
+          tenantOptions = Array.isArray(data?.tenants) ? data.tenants : [];
+          renderTenantOptions(tenantOptions);
+        } catch (error) {
+          // ignore load errors
+        }
+      }
+
+      async function loadTenantConfig() {
+        if (!selectedTenantId && isAdmin) {
+          categories = [];
+          renderCategories();
+          showView("category");
+          return;
+        }
+
+        const response = await fetchWithAuth(TENANT_CONFIG_ENDPOINT);
+        if (!response.ok) {
+          handleAuthError("Session expiree.");
+          return;
+        }
+        const data = await response.json();
+        setAdminMode(data?.tenant?.role);
+        state.currentCategory = null;
+        state.currentFolder = null;
+        state.currentLabel = null;
+        state.images = [];
+        state.selectMode = false;
+        state.selectedIds = new Set();
+        orderGrid.innerHTML = "";
+        orderEmpty.classList.add("hidden");
+        categories = Array.isArray(data?.tenant?.folders) ? data.tenant.folders : [];
+        setLocked(false);
+        renderCategories();
+        showView("category");
       }
 
       async function authenticate(identifier, password) {
@@ -666,10 +790,24 @@
 
           setAuthToken(data.token);
           isAuthenticated = true;
-          categories = Array.isArray(data?.tenant?.folders) ? data.tenant.folders : [];
-          setLocked(false);
-          renderCategories();
-          showView("category");
+          setAdminMode(data?.tenant?.role);
+          selectedTenantId = getSelectedTenantId();
+          if (isAdmin) {
+            setLocked(false);
+            await loadTenantOptions();
+            if (selectedTenantId) {
+              await loadTenantConfig();
+            } else {
+              categories = [];
+              renderCategories();
+              showView("category");
+            }
+          } else {
+            categories = Array.isArray(data?.tenant?.folders) ? data.tenant.folders : [];
+            setLocked(false);
+            renderCategories();
+            showView("category");
+          }
           loginIdentifier.value = "";
         } catch (error) {
           handleAuthError("Erreur d'identification.");
@@ -690,20 +828,32 @@
 
         try {
           isAuthenticated = false;
-          const tenantResponse = await fetch(TENANT_CONFIG_ENDPOINT, {
-            headers: { Authorization: `Bearer ${token}` },
-          });
-          if (tenantResponse.ok) {
-            const data = await tenantResponse.json();
-            isAuthenticated = true;
-            categories = Array.isArray(data?.tenant?.folders) ? data.tenant.folders : [];
-            setLocked(false);
-            renderCategories();
-            showView("category");
+          const tenantResponse = await fetchWithAuth(TENANT_CONFIG_ENDPOINT);
+          if (!tenantResponse.ok) {
+            handleAuthError("Session expiree.");
             return;
           }
-
-          handleAuthError("Session expiree.");
+          const data = await tenantResponse.json();
+          isAuthenticated = true;
+          setAdminMode(data?.tenant?.role);
+          selectedTenantId = getSelectedTenantId();
+          if (isAdmin) {
+            setLocked(false);
+            await loadTenantOptions();
+            if (selectedTenantId) {
+              await loadTenantConfig();
+            } else {
+              categories = [];
+              renderCategories();
+              showView("category");
+            }
+            return;
+          }
+          categories = Array.isArray(data?.tenant?.folders) ? data.tenant.folders : [];
+          setLocked(false);
+          renderCategories();
+          showView("category");
+          return;
         } catch (error) {
           handleAuthError("Session expiree.");
         }
@@ -748,6 +898,9 @@
 
       let categories = [];
       let isAuthenticated = false;
+      let isAdmin = false;
+      let selectedTenantId = getSelectedTenantId();
+      let tenantOptions = [];
 
       const state = {
         currentCategory: null,
@@ -815,6 +968,9 @@
         selectionActions.classList.toggle("hidden", !inUpload || !state.selectMode);
         selectModeButton.classList.toggle("hidden", !inUpload);
         logoutButton.classList.toggle("hidden", view !== "category");
+        if (adminPanel) {
+          adminPanel.classList.toggle("hidden", !isAdmin || view !== "category");
+        }
       }
 
       function selectCategory(categoryId) {
@@ -1633,6 +1789,14 @@
           showView("category");
         }
       });
+
+      if (adminTenantSelect) {
+        adminTenantSelect.addEventListener("change", async (event) => {
+          selectedTenantId = event.target.value;
+          setSelectedTenantId(selectedTenantId);
+          await loadTenantConfig();
+        });
+      }
 
       uploadButton.addEventListener("click", openUploadWidget);
 

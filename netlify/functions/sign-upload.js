@@ -38,6 +38,9 @@ exports.handler = async (event) => {
   if (!auth) {
     return unauthorizedResponse();
   }
+  if (auth.isAdmin && !auth.targetTenantId) {
+    return buildResponse(400, { error: "missing_target_tenant" });
+  }
 
   let payload = null;
   try {

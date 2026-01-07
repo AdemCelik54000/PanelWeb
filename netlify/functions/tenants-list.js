@@ -1,4 +1,5 @@
 const { getAuthContext } = require("../lib/_auth");
+const { listTenants } = require("../lib/_tenants");
 
 const buildResponse = (statusCode, payload) => ({
   statusCode,
@@ -21,23 +22,11 @@ exports.handler = async (event) => {
   if (!auth) {
     return unauthorizedResponse();
   }
-
-  if (auth.isAdmin && !auth.targetTenantId) {
-    return buildResponse(200, {
-      needsSelection: true,
-      tenant: {
-        id: auth.actor.id,
-        role: auth.actor.role || "admin",
-        folders: [],
-      },
-    });
+  if (!auth.isAdmin) {
+    return buildResponse(403, { error: "forbidden" });
   }
 
-  return buildResponse(200, {
-    tenant: {
-      id: auth.tenant.id,
-      role: auth.actor.role || auth.tenant.role || "client",
-      folders: auth.tenant.folders,
-    },
-  });
+  const tenants = await listTenants();
+  const clients = tenants.filter((tenant) => tenant.role !== "admin");
+  return buildResponse(200, { tenants: clients });
 };

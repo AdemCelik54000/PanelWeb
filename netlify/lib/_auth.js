@@ -87,7 +87,41 @@ const getAuthContext = async (event) => {
   if (!tenant) {
     return null;
   }
-  return { tenant, payload };
+  const isAdmin = tenant.role === "admin";
+  const overrideId =
+    event?.headers?.["x-tenant-id"] || event?.headers?.["X-Tenant-Id"] || "";
+  if (isAdmin && overrideId && overrideId !== tenant.id) {
+    let targetTenant = null;
+    try {
+      targetTenant = await getTenantById(overrideId);
+    } catch (error) {
+      if (error?.message === "missing_supabase_env") {
+        throw error;
+      }
+      console.error("Auth target tenant lookup failed", {
+        error,
+        tenantId: overrideId,
+      });
+      return null;
+    }
+    if (!targetTenant) {
+      return null;
+    }
+    return {
+      tenant: targetTenant,
+      actor: tenant,
+      payload,
+      isAdmin: true,
+      targetTenantId: targetTenant.id,
+    };
+  }
+  return {
+    tenant,
+    actor: tenant,
+    payload,
+    isAdmin,
+    targetTenantId: null,
+  };
 };
 
 module.exports = {
