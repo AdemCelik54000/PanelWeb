@@ -68,13 +68,22 @@ const getBearerToken = (headers) => {
   return header.slice("Bearer ".length).trim();
 };
 
-const getAuthContext = (event) => {
+const getAuthContext = async (event) => {
   const token = getBearerToken(event.headers || {});
   const payload = verifyToken(token);
   if (!payload || payload.role !== "tenant") {
     return null;
   }
-  const tenant = getTenantById(payload.tid);
+  let tenant = null;
+  try {
+    tenant = await getTenantById(payload.tid);
+  } catch (error) {
+    if (error?.message === "missing_supabase_env") {
+      throw error;
+    }
+    console.error("Auth tenant lookup failed", { error, tenantId: payload.tid });
+    return null;
+  }
   if (!tenant) {
     return null;
   }

@@ -21,7 +21,16 @@ exports.handler = async (event) => {
 
   const identifier = normalizeTenantId(payload?.identifier);
   const password = String(payload?.password || "");
-  const tenant = getTenantById(identifier);
+  let tenant = null;
+  try {
+    tenant = await getTenantById(identifier);
+  } catch (error) {
+    if (error?.message === "missing_supabase_env") {
+      return buildResponse(500, { error: "missing_supabase_env" });
+    }
+    console.error("Supabase login error", { error, identifier });
+    return buildResponse(500, { error: "tenant_lookup_failed" });
+  }
 
   const passwordOk = verifyPassword(tenant, password);
   if (!tenant || !passwordOk) {

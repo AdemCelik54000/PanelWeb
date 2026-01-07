@@ -22,7 +22,15 @@ exports.handler = async (event) => {
     return buildResponse(405, { error: "method_not_allowed" });
   }
 
-  const auth = getAuthContext(event);
+  let auth = null;
+  try {
+    auth = await getAuthContext(event);
+  } catch (error) {
+    if (error?.message === "missing_supabase_env") {
+      return buildResponse(500, { error: "missing_supabase_env" });
+    }
+    return buildResponse(500, { error: "auth_error" });
+  }
   if (!auth) {
     return unauthorizedResponse();
   }
