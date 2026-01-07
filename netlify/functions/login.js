@@ -1,5 +1,5 @@
-const { signToken } = require("./_auth");
-const { getTenantById, verifyPassword, normalizeTenantId } = require("./_tenants");
+const { signToken } = require("../lib/_auth");
+const { getTenantById, verifyPassword, normalizeTenantId } = require("../lib/_tenants");
 
 const buildResponse = (statusCode, payload) => ({
   statusCode,

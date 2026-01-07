@@ -4,8 +4,8 @@ const buildResponse = (statusCode, payload) => ({
   body: JSON.stringify(payload),
 });
 
-const { getAuthContext } = require("./_auth");
-const { isAllowedFolder, buildTenantFolder } = require("./_tenants");
+const { getAuthContext } = require("../lib/_auth");
+const { isAllowedFolder, buildTenantFolder } = require("../lib/_tenants");
 
 const unauthorizedResponse = () =>
   buildResponse(401, { error: "unauthorized" });

@@ -1,4 +1,4 @@
-const { getAuthContext } = require("./_auth");
+const { getAuthContext } = require("../lib/_auth");
 
 const buildResponse = (statusCode, payload) => ({
   statusCode,

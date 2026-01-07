@@ -6,7 +6,7 @@
       name="viewport"
       content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
     />
-    <title>Upload photos chantier</title>
+    <title>Web Menu</title>
     <meta name="theme-color" content="#0f172a" />
     <link rel="manifest" href="/manifest.webmanifest" />
     <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
@@ -92,6 +92,10 @@
         flex: 1;
         display: flex;
         flex-direction: column;
+      }
+
+      .card + .card {
+        margin-top: 16px;
       }
 
       .section-title {
@@ -211,6 +215,11 @@
         font-weight: 700;
         text-transform: uppercase;
         letter-spacing: 0.04em;
+      }
+
+      .logout-tag {
+        border: none;
+        cursor: pointer;
       }
 
       .path-box {
@@ -466,10 +475,9 @@
     </div>
     <div class="shell">
       <header>
-        <span class="tag">Upload chantier</span>
+        <button class="tag logout-tag" type="button" id="logoutButton">Deconnexion</button>
         <h1>Ajouter des photos</h1>
         <p>Sélectionnez une catégorie, puis la sous-catégorie si besoin.</p>
-        <button class="btn btn-back" type="button" id="logoutButton">Deconnexion</button>
       </header>
 
       <button class="btn btn-save hidden" type="button" id="saveOrderButton">
@@ -806,6 +814,7 @@
         saveOrderButton.classList.toggle("hidden", !inUpload || state.selectMode);
         selectionActions.classList.toggle("hidden", !inUpload || !state.selectMode);
         selectModeButton.classList.toggle("hidden", !inUpload);
+        logoutButton.classList.toggle("hidden", view !== "category");
       }
 
       function selectCategory(categoryId) {
