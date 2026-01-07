@@ -5,7 +5,7 @@ const { getSupabaseClient } = require("./supabase");
 const HASH_ITERATIONS = 100000;
 const HASH_KEYLEN = 32;
 
-const normalizeTenantId = (value) => String(value || "").trim().toLowerCase();
+const normalizeTenantId = (value) => String(value || "").trim();
 
 const toSafeTenantFolder = (value) => {
   const normalized = normalizeTenantId(value);
