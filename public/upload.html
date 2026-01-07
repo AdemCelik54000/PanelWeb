@@ -1623,7 +1623,11 @@
       });
 
       document.getElementById("backToSubcategories").addEventListener("click", () => {
-        if (state.currentCategory && state.currentCategory.subcategories) {
+        const hasSubcategories =
+          state.currentCategory &&
+          Array.isArray(state.currentCategory.subcategories) &&
+          state.currentCategory.subcategories.length > 0;
+        if (hasSubcategories) {
           showView("subcategory");
         } else {
           showView("category");
