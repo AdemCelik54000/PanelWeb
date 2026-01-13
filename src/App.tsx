@@ -1,6 +1,6 @@
 function App() {
   return (
-    <div className="bg-black" style={{ height: "100svh" }}>
+    <div className="bg-slate-950" style={{ height: "100svh" }}>
       <p
         style={{
           position: "absolute",
@@ -21,7 +21,7 @@ function App() {
           width: "100%",
           height: "100%",
           display: "block",
-          background: "#000000",
+          background: "transparent",
         }}
       />
     </div>
