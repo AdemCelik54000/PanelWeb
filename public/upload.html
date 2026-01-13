@@ -44,17 +44,7 @@
       body {
         height: 100%;
         overscroll-behavior: none;
-        background: radial-gradient(
-            1200px 800px at 20% -10%,
-            rgba(56, 189, 248, 0.30),
-            transparent 55%
-          ),
-          radial-gradient(
-            900px 700px at 90% 10%,
-            rgba(249, 115, 22, 0.22),
-            transparent 60%
-          ),
-          linear-gradient(180deg, var(--bg-2), var(--bg-1) 55%, #020617);
+        background: var(--bg-1);
         background-color: var(--bg-1);
       }
 
@@ -68,6 +58,31 @@
         position: static;
       }
 
+      body {
+        position: relative;
+      }
+
+      body::before {
+        content: "";
+        position: fixed;
+        inset: 0;
+        z-index: 0;
+        pointer-events: none;
+        background: radial-gradient(
+            1200px 800px at 20% -10%,
+            rgba(56, 189, 248, 0.30),
+            transparent 55%
+          ),
+          radial-gradient(
+            900px 700px at 90% 10%,
+            rgba(249, 115, 22, 0.22),
+            transparent 60%
+          ),
+          linear-gradient(180deg, var(--bg-2), var(--bg-1) 55%, #020617);
+        transform: translateZ(0);
+        will-change: transform;
+      }
+
       @supports (backdrop-filter: blur(8px)) {
         .card {
           backdrop-filter: blur(10px);
@@ -79,6 +94,7 @@
         margin: 0 auto;
         position: relative;
         min-height: calc(100svh - 64px);
+        z-index: 1;
       }
 
       header {
@@ -391,7 +407,7 @@
         position: relative;
         border-radius: 12px;
         overflow: hidden;
-        background: #e2e8f0;
+        background: linear-gradient(135deg, rgba(226, 232, 240, 1), rgba(226, 232, 240, 0.65));
         aspect-ratio: 1 / 1;
         touch-action: manipulation;
         user-select: none;
@@ -404,10 +420,16 @@
         height: 100%;
         object-fit: cover;
         display: block;
+        opacity: 0;
+        transition: opacity 0.22s ease;
         pointer-events: none;
         user-select: none;
         -webkit-user-select: none;
         -webkit-touch-callout: none;
+      }
+
+      .order-item img.loaded {
+        opacity: 1;
       }
 
       .order-item.dragging {
@@ -1158,6 +1180,21 @@
           item.dataset.publicId = image.public_id;
 
           const img = document.createElement("img");
+          img.addEventListener(
+            "load",
+            () => {
+              img.classList.add("loaded");
+            },
+            { once: true }
+          );
+          img.addEventListener(
+            "error",
+            () => {
+              img.classList.add("loaded");
+            },
+            { once: true }
+          );
+          img.decoding = "async";
           img.src =
             image.kind === "video"
               ? buildVideoThumbnail(image.public_id)
