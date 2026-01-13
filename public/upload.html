@@ -622,6 +622,15 @@
         cloudName: "dq7d6rmbp",
         uploadPreset: "kgehqzfz",
       };
+
+      const cloudinaryRuntime = {
+        cloudName: CLOUDINARY_CONFIG.cloudName,
+        uploadPreset: CLOUDINARY_CONFIG.uploadPreset,
+      };
+
+      const getCloudName = () => cloudinaryRuntime.cloudName || CLOUDINARY_CONFIG.cloudName;
+      const getUploadPreset = () =>
+        cloudinaryRuntime.uploadPreset || CLOUDINARY_CONFIG.uploadPreset;
       const DUPLICATE_CHECK_ENDPOINT = "/.netlify/functions/check-image";
       const LIST_IMAGES_ENDPOINT = "/.netlify/functions/list-images";
       const SAVE_ORDER_ENDPOINT = "/.netlify/functions/save-order";
@@ -924,7 +933,6 @@
           body: JSON.stringify({
             folder,
             hash,
-            upload_preset: CLOUDINARY_CONFIG.uploadPreset,
           }),
         });
 
@@ -933,7 +941,14 @@
         }
 
         try {
-          return await response.json();
+          const payload = await response.json();
+          if (payload?.cloud_name) {
+            cloudinaryRuntime.cloudName = payload.cloud_name;
+          }
+          if (payload?.upload_preset) {
+            cloudinaryRuntime.uploadPreset = payload.upload_preset;
+          }
+          return payload;
         } catch (error) {
           return null;
         }
@@ -1120,7 +1135,7 @@
         if (!publicId) {
           return "";
         }
-        return `https://res.cloudinary.com/${CLOUDINARY_CONFIG.cloudName}/video/upload/so_0,f_jpg/${publicId}.jpg`;
+        return `https://res.cloudinary.com/${getCloudName()}/video/upload/so_0,f_jpg/${publicId}.jpg`;
       }
 
       function buildImagePreviewUrl(url) {
@@ -1474,10 +1489,12 @@
 
           const uploadFolder = signaturePayload.folder || state.currentFolder;
           const uploadTags = signaturePayload.tags || "";
+          const uploadPreset = signaturePayload.upload_preset || getUploadPreset();
+          const cloudName = signaturePayload.cloud_name || getCloudName();
           const formData = new FormData();
           formData.append("file", file);
           formData.append("folder", uploadFolder);
-          formData.append("upload_preset", CLOUDINARY_CONFIG.uploadPreset);
+          formData.append("upload_preset", uploadPreset);
           formData.append("timestamp", signaturePayload.timestamp);
           formData.append("signature", signaturePayload.signature);
           formData.append("api_key", signaturePayload.api_key);
@@ -1487,7 +1504,7 @@
 
           try {
             const response = await fetch(
-              `https://api.cloudinary.com/v1_1/${CLOUDINARY_CONFIG.cloudName}/image/upload`,
+              `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`,
               { method: "POST", body: formData }
             );
 

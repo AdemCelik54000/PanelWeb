@@ -63,7 +63,7 @@ exports.handler = async (event) => {
   }
 
   const folderKey = payload?.folder;
-  const uploadPreset = payload?.upload_preset;
+  const uploadPreset = process.env.CLOUDINARY_UPLOAD_PRESET || payload?.upload_preset;
   const hash = payload?.hash;
   if (!uploadPreset || !isAllowedFolder(auth.tenant, folderKey)) {
     return buildResponse(400, { error: "missing_params" });
@@ -87,6 +87,7 @@ exports.handler = async (event) => {
     timestamp,
     api_key: apiKey,
     cloud_name: cloudName,
+    upload_preset: uploadPreset,
     folder,
     tags,
   });
