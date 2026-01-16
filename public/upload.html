@@ -331,6 +331,192 @@
         display: flex;
       }
 
+      body.loading {
+        overflow: hidden;
+      }
+
+      .global-loading-overlay {
+        position: fixed;
+        inset: 0;
+        display: none;
+        align-items: center;
+        justify-content: center;
+        padding: 24px 16px;
+        background: radial-gradient(circle at top, rgba(15, 23, 42, 0.88), rgba(2, 6, 23, 0.98));
+        z-index: 3000;
+      }
+
+      .global-loading-overlay.active {
+        display: flex;
+      }
+
+      .global-loading-card {
+        width: min(460px, 100%);
+        background: rgba(248, 250, 252, 0.98);
+        border-radius: 18px;
+        padding: 18px;
+        box-shadow: var(--shadow);
+        border: 1px solid var(--border);
+        display: grid;
+        gap: 12px;
+      }
+
+      .global-loading-overlay {
+        touch-action: none;
+        overscroll-behavior: none;
+      }
+
+      .global-loading-preview {
+        display: none;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 10px;
+        padding: 10px;
+        border-radius: 14px;
+        background: #ffffff;
+        border: 1px solid var(--border);
+        max-height: min(42svh, 340px);
+        overflow: hidden;
+      }
+
+      .global-loading-preview.active {
+        display: grid;
+      }
+
+      .preview-item {
+        position: relative;
+        border-radius: 12px;
+        overflow: hidden;
+        aspect-ratio: 1 / 1;
+        background: linear-gradient(135deg, rgba(226, 232, 240, 1), rgba(226, 232, 240, 0.7));
+        box-shadow: 0 10px 22px rgba(15, 23, 42, 0.12);
+      }
+
+      .preview-item img {
+        width: 100%;
+        height: 100%;
+        display: block;
+        object-fit: cover;
+      }
+
+      .preview-fallback {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        padding: 12px;
+        text-align: center;
+        color: #0f172a;
+      }
+
+      .preview-fallback.hidden {
+        display: none;
+      }
+
+      .preview-ext {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 6px 10px;
+        border-radius: 999px;
+        background: rgba(15, 23, 42, 0.10);
+        border: 1px solid rgba(15, 23, 42, 0.12);
+        font-size: 12px;
+        font-weight: 800;
+        letter-spacing: 0.04em;
+      }
+
+      .preview-name {
+        font-size: 12px;
+        font-weight: 700;
+        color: rgba(15, 23, 42, 0.75);
+        max-width: 100%;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .preview-item.active {
+        outline: 3px solid #22c55e;
+        outline-offset: -3px;
+      }
+
+      .preview-badge {
+        position: absolute;
+        top: 8px;
+        left: 8px;
+        padding: 4px 8px;
+        border-radius: 999px;
+        font-size: 11px;
+        font-weight: 800;
+        letter-spacing: 0.02em;
+        color: #f8fafc;
+        background: rgba(15, 23, 42, 0.8);
+        user-select: none;
+        -webkit-user-select: none;
+      }
+
+      .preview-badge.delete {
+        background: rgba(220, 38, 38, 0.88);
+      }
+
+      .preview-badge.upload {
+        background: rgba(34, 197, 94, 0.88);
+      }
+
+      .global-loading-title {
+        font-size: 16px;
+        font-weight: 800;
+        color: #0b1220;
+      }
+
+      .global-loading-subtitle {
+        font-size: 13px;
+        font-weight: 700;
+        color: #0f172a;
+        opacity: 0.85;
+      }
+
+      .progress-bar {
+        width: 100%;
+        height: 12px;
+        border-radius: 999px;
+        background: rgba(15, 23, 42, 0.10);
+        overflow: hidden;
+        border: 1px solid rgba(15, 23, 42, 0.10);
+      }
+
+      .progress-bar-fill {
+        height: 100%;
+        width: 0%;
+        background: linear-gradient(90deg, #0ea5e9, #22c55e);
+        border-radius: 999px;
+        transition: width 0.18s ease;
+      }
+
+      .progress-bar.indeterminate .progress-bar-fill {
+        width: 35%;
+        animation: indeterminateBar 1.05s ease-in-out infinite;
+      }
+
+      @keyframes indeterminateBar {
+        0% {
+          transform: translateX(-120%);
+        }
+        100% {
+          transform: translateX(320%);
+        }
+      }
+
+      .progress-meta {
+        margin-top: 8px;
+        font-size: 12px;
+        color: var(--muted);
+        font-weight: 700;
+      }
+
       .login-card {
         width: min(420px, 100%);
         background: #f8fafc;
@@ -544,6 +730,26 @@
         <div class="login-error" id="loginError" role="alert"></div>
       </div>
     </div>
+
+    <div class="global-loading-overlay" id="globalLoadingOverlay" aria-hidden="true">
+      <div class="global-loading-card" role="alert" aria-live="assertive">
+        <div class="global-loading-title" id="globalLoadingTitle">
+          Enregistrement en cours…
+        </div>
+        <div class="global-loading-subtitle" id="globalLoadingSubtitle">
+          Ne fermez pas l'application.
+        </div>
+
+        <div class="global-loading-preview" id="globalLoadingPreview" aria-hidden="true"></div>
+
+        <div>
+          <div class="progress-bar" id="globalLoadingBar">
+            <div class="progress-bar-fill" id="globalLoadingBarFill"></div>
+          </div>
+          <div class="progress-meta" id="globalLoadingMeta"></div>
+        </div>
+      </div>
+    </div>
     <div class="shell">
       <header>
         <button class="tag logout-tag" type="button" id="logoutButton">Deconnexion</button>
@@ -645,6 +851,13 @@
       const TENANT_OVERRIDE_STORAGE_KEY = "site_tenant_override";
 
       const loginOverlay = document.getElementById("loginOverlay");
+      const globalLoadingOverlay = document.getElementById("globalLoadingOverlay");
+      const globalLoadingTitle = document.getElementById("globalLoadingTitle");
+      const globalLoadingSubtitle = document.getElementById("globalLoadingSubtitle");
+      const globalLoadingBar = document.getElementById("globalLoadingBar");
+      const globalLoadingBarFill = document.getElementById("globalLoadingBarFill");
+      const globalLoadingMeta = document.getElementById("globalLoadingMeta");
+      const globalLoadingPreview = document.getElementById("globalLoadingPreview");
       const loginForm = document.getElementById("loginForm");
       const loginIdentifier = document.getElementById("loginIdentifier");
       const loginPassword = document.getElementById("loginPassword");
@@ -653,6 +866,299 @@
       const adminPanel = document.getElementById("adminPanel");
       const adminTenantSelect = document.getElementById("adminTenantSelect");
       const adminHelper = document.getElementById("adminHelper");
+
+      const globalLoadingState = {
+        active: false,
+        mode: "indeterminate",
+        current: 0,
+        total: 0,
+        previewObjectUrls: [],
+        previewActiveIndex: -1,
+      };
+
+      function clearGlobalLoadingPreviews() {
+        if (globalLoadingPreview) {
+          globalLoadingPreview.innerHTML = "";
+          globalLoadingPreview.classList.remove("active");
+          globalLoadingPreview.setAttribute("aria-hidden", "true");
+        }
+
+        (globalLoadingState.previewObjectUrls || []).forEach((url) => {
+          try {
+            URL.revokeObjectURL(url);
+          } catch (error) {
+            // ignore
+          }
+        });
+        globalLoadingState.previewObjectUrls = [];
+        globalLoadingState.previewActiveIndex = -1;
+      }
+
+      function setGlobalLoadingPreviews({ variant, items, activeIndex = -1 } = {}) {
+        if (!globalLoadingPreview) {
+          return;
+        }
+        clearGlobalLoadingPreviews();
+
+        const normalized = Array.isArray(items) ? items.filter(Boolean) : [];
+        if (!normalized.length) {
+          return;
+        }
+
+        const maxItems = 9;
+        const visible = normalized.slice(0, maxItems);
+        const remaining = normalized.length - visible.length;
+
+        globalLoadingState.previewActiveIndex =
+          Number.isFinite(activeIndex) ? activeIndex : -1;
+
+        globalLoadingPreview.classList.add("active");
+        globalLoadingPreview.setAttribute("aria-hidden", "false");
+
+        visible.forEach((item, index) => {
+          const cell = document.createElement("div");
+          cell.className = "preview-item";
+          if (index === globalLoadingState.previewActiveIndex) {
+            cell.classList.add("active");
+          }
+
+          const fallback = document.createElement("div");
+          fallback.className = "preview-fallback hidden";
+          const ext = document.createElement("div");
+          ext.className = "preview-ext";
+          ext.textContent = String(item?.label || item?.type || "FICHIER")
+            .toUpperCase()
+            .slice(0, 8);
+          const name = document.createElement("div");
+          name.className = "preview-name";
+          name.textContent = String(item?.name || "");
+          fallback.appendChild(ext);
+          if (name.textContent) {
+            fallback.appendChild(name);
+          }
+
+          let img = null;
+          if (item?.src) {
+            img = document.createElement("img");
+            img.decoding = "async";
+            img.loading = "eager";
+            img.alt = variant === "delete" ? "Suppression" : "Ajout";
+            img.src = item.src;
+            img.addEventListener(
+              "error",
+              () => {
+                img.style.display = "none";
+                fallback.classList.remove("hidden");
+              },
+              { once: true }
+            );
+          } else {
+            fallback.classList.remove("hidden");
+          }
+
+          const badge = document.createElement("div");
+          badge.className = `preview-badge ${variant === "delete" ? "delete" : "upload"}`;
+          badge.textContent = variant === "delete" ? "SUPPR" : "AJOUT";
+
+          if (img) {
+            cell.appendChild(img);
+          }
+          cell.appendChild(fallback);
+          cell.appendChild(badge);
+          globalLoadingPreview.appendChild(cell);
+        });
+
+        if (remaining > 0) {
+          const cell = document.createElement("div");
+          cell.className = "preview-item";
+          const label = document.createElement("div");
+          label.className = "preview-badge";
+          label.textContent = `+${remaining}`;
+          cell.appendChild(label);
+          globalLoadingPreview.appendChild(cell);
+        }
+      }
+
+      function setGlobalLoadingActivePreview(index) {
+        if (!globalLoadingPreview) {
+          return;
+        }
+        const idx = Number(index);
+        if (!Number.isFinite(idx)) {
+          return;
+        }
+        globalLoadingState.previewActiveIndex = idx;
+        const items = Array.from(globalLoadingPreview.children);
+        items.forEach((el, i) => {
+          el.classList.toggle("active", i === idx);
+        });
+      }
+
+      function buildPreviewItemsFromFiles(fileList) {
+        const files = Array.from(fileList || []);
+
+        const isPreviewableImage = (file) => {
+          const type = String(file?.type || "").toLowerCase();
+          if (!type.startsWith("image/")) {
+            return false;
+          }
+          // HEIC/HEIF are commonly not decodable by browsers.
+          if (type === "image/heic" || type === "image/heif") {
+            return false;
+          }
+          return true;
+        };
+
+        const labelFromFile = (file) => {
+          const type = String(file?.type || "").toLowerCase();
+          if (type === "image/heic") return "HEIC";
+          if (type === "image/heif") return "HEIF";
+          if (type === "image/jpeg") return "JPG";
+          if (type === "image/png") return "PNG";
+          if (type === "image/webp") return "WEBP";
+          if (type.startsWith("image/")) return "IMAGE";
+          return "FICHIER";
+        };
+
+        return files
+          .filter((file) => file && file.type)
+          .map((file) => {
+            const previewable = isPreviewableImage(file);
+            let url = "";
+            if (previewable) {
+              url = URL.createObjectURL(file);
+              globalLoadingState.previewObjectUrls.push(url);
+            }
+            return {
+              src: url,
+              name: file?.name || "",
+              type: file?.type || "",
+              label: labelFromFile(file),
+            };
+          });
+      }
+
+      function buildPreviewItemsFromSelected() {
+        const ids = Array.from(state.selectedIds || []);
+        const lookup = new Map(state.images.map((image) => [image.public_id, image]));
+        return ids
+          .map((id) => lookup.get(id))
+          .filter(Boolean)
+          .map((image) => {
+            const src =
+              image.kind === "video"
+                ? buildVideoThumbnail(image.public_id)
+                : buildImagePreviewUrl(image.secure_url);
+            return { src };
+          });
+      }
+
+      function setGlobalLoading({
+        title,
+        subtitle,
+        mode = "indeterminate",
+        current = 0,
+        total = 0,
+      } = {}) {
+        globalLoadingState.active = true;
+        globalLoadingState.mode = mode;
+        globalLoadingState.current = current;
+        globalLoadingState.total = total;
+
+        document.body.classList.add("loading");
+        if (globalLoadingOverlay) {
+          globalLoadingOverlay.classList.add("active");
+          globalLoadingOverlay.setAttribute("aria-hidden", "false");
+        }
+
+        if (globalLoadingTitle) {
+          globalLoadingTitle.textContent =
+            title || "Enregistrement en cours…";
+        }
+        if (globalLoadingSubtitle) {
+          globalLoadingSubtitle.textContent =
+            subtitle || "Ne fermez pas l'application.";
+        }
+
+        updateGlobalLoadingProgress({ current, total, mode });
+
+        try {
+          if (globalLoadingOverlay && globalLoadingOverlay.focus) {
+            globalLoadingOverlay.tabIndex = -1;
+            globalLoadingOverlay.focus({ preventScroll: true });
+          }
+        } catch (error) {
+          // ignore focus errors
+        }
+      }
+
+      function updateGlobalLoadingProgress({ current, total, mode } = {}) {
+        if (!globalLoadingState.active) {
+          return;
+        }
+        if (typeof mode === "string") {
+          globalLoadingState.mode = mode;
+        }
+        if (Number.isFinite(current)) {
+          globalLoadingState.current = current;
+        }
+        if (Number.isFinite(total)) {
+          globalLoadingState.total = total;
+        }
+
+        const isDeterminate =
+          globalLoadingState.mode === "determinate" &&
+          globalLoadingState.total > 0;
+
+        if (globalLoadingBar) {
+          globalLoadingBar.classList.toggle("indeterminate", !isDeterminate);
+        }
+        if (globalLoadingBarFill) {
+          if (isDeterminate) {
+            const pct = Math.max(
+              0,
+              Math.min(
+                100,
+                Math.round(
+                  (globalLoadingState.current / globalLoadingState.total) * 100
+                )
+              )
+            );
+            globalLoadingBarFill.style.width = `${pct}%`;
+          } else {
+            globalLoadingBarFill.style.width = "35%";
+          }
+        }
+        if (globalLoadingMeta) {
+          if (isDeterminate) {
+            globalLoadingMeta.textContent = `${globalLoadingState.current}/${globalLoadingState.total}`;
+          } else {
+            globalLoadingMeta.textContent = "";
+          }
+        }
+      }
+
+      function clearGlobalLoading() {
+        globalLoadingState.active = false;
+        globalLoadingState.mode = "indeterminate";
+        globalLoadingState.current = 0;
+        globalLoadingState.total = 0;
+
+        clearGlobalLoadingPreviews();
+
+        document.body.classList.remove("loading");
+        if (globalLoadingOverlay) {
+          globalLoadingOverlay.classList.remove("active");
+          globalLoadingOverlay.setAttribute("aria-hidden", "true");
+        }
+
+        if (globalLoadingMeta) {
+          globalLoadingMeta.textContent = "";
+        }
+        if (globalLoadingBarFill) {
+          globalLoadingBarFill.style.width = "0%";
+        }
+      }
 
       function getAuthToken() {
         return sessionStorage.getItem(AUTH_STORAGE_KEY);
@@ -933,6 +1439,7 @@
           body: JSON.stringify({
             folder,
             hash,
+            upload_preset: getUploadPreset(),
           }),
         });
 
@@ -1343,6 +1850,13 @@
           orderStatus.textContent = "Aucune photo a enregistrer.";
           return;
         }
+
+        setGlobalLoading({
+          title: "Enregistrement en cours…",
+          subtitle: "Ne fermez pas l'application.",
+          mode: "indeterminate",
+        });
+
         orderStatus.textContent = "Enregistrement de l'ordre...";
         saveOrderButton.disabled = true;
         saveOrderButton.textContent = "ENREGISTREMENT...";
@@ -1357,10 +1871,14 @@
           };
         });
 
-        const success = await saveOrderPayload(payload);
-
-        saveOrderButton.disabled = false;
-        saveOrderButton.textContent = "ENREGISTRER L'ORDRE";
+        let success = false;
+        try {
+          success = await saveOrderPayload(payload);
+        } finally {
+          clearGlobalLoading();
+          saveOrderButton.disabled = false;
+          saveOrderButton.textContent = "ENREGISTRER L'ORDRE";
+        }
 
         if (!success) {
           orderStatus.textContent = "Erreur lors de l'enregistrement.";
@@ -1375,6 +1893,8 @@
         state.images = sortImages(state.images);
         renderOrderGrid();
         orderStatus.textContent = "Ordre sauvegarde.";
+
+        showView("category");
       }
 
       async function assignPositionAfterUpload(uploadedAsset) {
@@ -1444,15 +1964,48 @@
         let lastError = "";
         const seenHashes = new Set();
 
+        const totalFiles = Array.isArray(files) ? files.length : files?.length || 0;
+        const useDeterminate = totalFiles > 1;
+        let processedCount = 0;
+
+        setGlobalLoading({
+          title: "Envoi des photos…",
+          subtitle: "Ne fermez pas l'application.",
+          mode: useDeterminate ? "determinate" : "indeterminate",
+          current: 0,
+          total: useDeterminate ? totalFiles : 0,
+        });
+
+        try {
+          const previewItems = buildPreviewItemsFromFiles(files);
+          if (previewItems.length) {
+            setGlobalLoadingPreviews({
+              variant: "upload",
+              items: previewItems,
+              activeIndex: 0,
+            });
+          }
+        } catch (error) {
+          // ignore preview errors
+        }
+
         uploadButton.disabled = true;
         uploadButton.textContent = "Upload en cours...";
         statusMessage.textContent = "Verification des doublons...";
 
-        for (const file of files) {
-          if (file.size > maxFileSize) {
-            skippedCount += 1;
-            continue;
-          }
+        try {
+          for (const file of files) {
+            processedCount += 1;
+            if (useDeterminate) {
+              updateGlobalLoadingProgress({ current: processedCount, total: totalFiles });
+            }
+
+            setGlobalLoadingActivePreview(processedCount - 1);
+
+            if (file.size > maxFileSize) {
+              skippedCount += 1;
+              continue;
+            }
 
           let hash = "";
           try {
@@ -1539,6 +2092,9 @@
           } catch (error) {
             skippedCount += 1;
           }
+        }
+        } finally {
+          clearGlobalLoading();
         }
 
         uploadButton.disabled = false;
@@ -1673,6 +2229,25 @@
             resource_type: image.kind === "video" ? "video" : "image",
           }));
 
+        setGlobalLoading({
+          title: "Suppression en cours…",
+          subtitle: "Ne fermez pas l'application.",
+          mode: "indeterminate",
+        });
+
+        try {
+          const previewItems = buildPreviewItemsFromSelected();
+          if (previewItems.length) {
+            setGlobalLoadingPreviews({
+              variant: "delete",
+              items: previewItems,
+              activeIndex: -1,
+            });
+          }
+        } catch (error) {
+          // ignore preview errors
+        }
+
         orderStatus.textContent = "Suppression en cours...";
         deleteSelectedButton.disabled = true;
         downloadSelectedButton.disabled = true;
@@ -1689,6 +2264,7 @@
           success = false;
         }
 
+        clearGlobalLoading();
         deleteSelectedButton.disabled = false;
         downloadSelectedButton.disabled = false;
 
@@ -1701,7 +2277,7 @@
         state.selectMode = false;
         resetSelection();
         updateSelectionModeUI();
-        await loadImagesForFolder();
+        showView("category");
       }
 
       function getFilenameFromUrl(url, publicId) {
