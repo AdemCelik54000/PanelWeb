@@ -1833,6 +1833,14 @@
         editMode: false,
         pendingDayChanges: new Map(),
         saveTimer: null,
+        paint: {
+          active: false,
+          targetOpen: true,
+          visited: new Set(),
+          didLongPress: false,
+          pressTimer: null,
+          pointerId: null,
+        },
       };
 
       const pad2 = (value) => String(value).padStart(2, "0");
@@ -2064,6 +2072,24 @@
         queueWorkingDaySave(iso, next);
       }
 
+      function setWorkingDayByIso(iso, open) {
+        const dateIso = String(iso || "").trim();
+        if (!dateIso) {
+          return;
+        }
+        const next = Boolean(open);
+        const isOpen = planningState.openDays.has(dateIso);
+        if (next === isOpen) {
+          return;
+        }
+        if (next) {
+          planningState.openDays.add(dateIso);
+        } else {
+          planningState.openDays.delete(dateIso);
+        }
+        queueWorkingDaySave(dateIso, next);
+      }
+
       function renderDaySlots(date) {
         if (!planningSlots) {
           return;
@@ -2231,6 +2257,7 @@
           const day = document.createElement("button");
           day.type = "button";
           day.className = "planning-month-day";
+          day.dataset.iso = iso;
           if (!isCurrentMonth) {
             day.classList.add("muted");
           }
@@ -2240,36 +2267,108 @@
           day.textContent = String(cursor.getDate());
           day.title = count ? `${count} rendez-vous` : "";
 
-          let pressTimer = null;
-          const clearPress = () => {
-            if (pressTimer) {
-              clearTimeout(pressTimer);
-              pressTimer = null;
+          const clearPaintPress = () => {
+            if (planningState.paint.pressTimer) {
+              clearTimeout(planningState.paint.pressTimer);
+              planningState.paint.pressTimer = null;
             }
           };
 
-          const onLongPress = () => {
+          const stopPaint = () => {
+            clearPaintPress();
+            planningState.paint.active = false;
+            planningState.paint.visited = new Set();
+            planningState.paint.pointerId = null;
+          };
+
+          const applyPaintToElement = (el) => {
+            const target = el?.closest ? el.closest(".planning-month-day") : null;
+            if (!target) {
+              return;
+            }
+            const dateIso = String(target.dataset.iso || "").trim();
+            if (!dateIso) {
+              return;
+            }
+            if (planningState.paint.visited.has(dateIso)) {
+              return;
+            }
+            planningState.paint.visited.add(dateIso);
+            setWorkingDayByIso(dateIso, planningState.paint.targetOpen);
+            target.classList.toggle("open", planningState.paint.targetOpen);
+          };
+
+          const startPaint = () => {
             if (!planningState.editMode) {
               return;
             }
-            toggleWorkingDay(cursor);
-            renderPlanning();
+
+            planningState.paint.didLongPress = true;
+            planningState.paint.active = true;
+            planningState.paint.visited = new Set();
+
+            const isOpenNow = planningState.openDays.has(iso);
+            planningState.paint.targetOpen = !isOpenNow;
+
+            planningHelper.textContent = planningState.paint.targetOpen
+              ? "Glissez pour ouvrir plusieurs jours."
+              : "Glissez pour fermer plusieurs jours.";
+
+            applyPaintToElement(day);
           };
 
-          day.addEventListener("touchstart", () => {
-            clearPress();
-            pressTimer = setTimeout(onLongPress, 350);
+          day.addEventListener("pointerdown", (event) => {
+            // Pointer Events unify touch + mouse.
+            if (!planningState.editMode) {
+              return;
+            }
+            planningState.paint.didLongPress = false;
+            planningState.paint.pointerId = event.pointerId;
+            clearPaintPress();
+            planningState.paint.pressTimer = setTimeout(startPaint, 320);
           });
-          day.addEventListener("touchend", clearPress);
-          day.addEventListener("touchcancel", clearPress);
-          day.addEventListener("mousedown", () => {
-            clearPress();
-            pressTimer = setTimeout(onLongPress, 350);
+
+          day.addEventListener("pointermove", (event) => {
+            if (!planningState.paint.active) {
+              return;
+            }
+            if (
+              planningState.paint.pointerId !== null &&
+              event.pointerId !== planningState.paint.pointerId
+            ) {
+              return;
+            }
+            const el = document.elementFromPoint(event.clientX, event.clientY);
+            applyPaintToElement(el);
           });
-          day.addEventListener("mouseup", clearPress);
-          day.addEventListener("mouseleave", clearPress);
+
+          day.addEventListener("pointerup", () => {
+            clearPaintPress();
+            if (planningState.paint.active) {
+              stopPaint();
+              planningHelper.textContent = planningState.editMode
+                ? "Mode edition: cliquez/appui long pour ouvrir/fermer."
+                : "Cliquez sur un jour pour voir les créneaux.";
+            }
+          });
+
+          day.addEventListener("pointercancel", () => {
+            stopPaint();
+          });
+
+          day.addEventListener("pointerleave", () => {
+            // If the user moved away before the long-press triggers, cancel the timer.
+            if (!planningState.paint.active) {
+              clearPaintPress();
+            }
+          });
 
           day.addEventListener("click", () => {
+            if (planningState.paint.didLongPress) {
+              // Prevent a click from toggling again after a long-press paint.
+              planningState.paint.didLongPress = false;
+              return;
+            }
             planningState.selectedDate = cursor;
             planningState.focusDate = new Date(cursor.getFullYear(), cursor.getMonth(), 1);
             if (planningState.editMode) {
