@@ -404,8 +404,9 @@
       }
 
       .planning-month-day.active {
-        background: linear-gradient(135deg, rgba(16, 185, 129, 0.18), rgba(56, 189, 248, 0.14));
-        border-color: rgba(16, 185, 129, 0.45);
+        /* Selection should not hide open/closed colors */
+        box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.38);
+        border-color: rgba(56, 189, 248, 0.65);
       }
 
       .planning-month-day.open {
@@ -414,7 +415,8 @@
       }
 
       .planning-month-day.open.active {
-        background: linear-gradient(135deg, rgba(34, 197, 94, 0.22), rgba(56, 189, 248, 0.14));
+        /* Keep the open-day background and add the selection ring */
+        box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.38);
       }
 
       .planning-month-day.editing {
