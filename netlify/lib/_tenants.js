@@ -8,7 +8,7 @@ const HASH_KEYLEN = 32;
 const normalizeTenantId = (value) => String(value || "").trim();
 
 const toSafeTenantFolder = (value) => {
-  const normalized = normalizeTenantId(value);
+  const normalized = normalizeTenantId(value).toLowerCase();
   return normalized.replace(/[^a-z0-9.-]/g, "_");
 };
 
