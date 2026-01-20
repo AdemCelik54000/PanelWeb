@@ -19,6 +19,24 @@ const normalizeDate = (value) => {
 
 const isSafeForILike = (value) => !/[\%_]/.test(String(value || ""));
 
+const todayIsoUtc = () => new Date().toISOString().slice(0, 10);
+
+const cleanupPastRendezVous = async ({ tenantId, useILike, beforeDate }) => {
+  const cutoff = normalizeDate(beforeDate) || todayIsoUtc();
+  const supabase = getSupabaseClient();
+
+  let query = supabase.from("rendez_vous").delete();
+  query = useILike ? query.ilike("tenant_id", tenantId) : query.eq("tenant_id", tenantId);
+  query = query.lt("date", cutoff);
+
+  const { error } = await query;
+  if (error) {
+    console.error("Supabase rendez_vous cleanup error", { error, tenantId, cutoff });
+    return false;
+  }
+  return true;
+};
+
 const extractClientInfo = (row) => {
   if (!row) {
     return { prenom: "", snapchat: "" };
@@ -118,6 +136,12 @@ exports.handler = async (event) => {
     return buildResponse(400, { error: "missing_tenant" });
   }
 
+  const useILike = isSafeForILike(tenantId);
+  const cleanupOk = await cleanupPastRendezVous({ tenantId, useILike, beforeDate: todayIsoUtc() });
+  if (!cleanupOk) {
+    return buildResponse(500, { error: "db_error" });
+  }
+
   const startDate = normalizeDate(event?.queryStringParameters?.start);
   const endDate = normalizeDate(event?.queryStringParameters?.end);
 
@@ -149,7 +173,7 @@ exports.handler = async (event) => {
     return buildResponse(200, { items: enriched });
   }
 
-  if (!isSafeForILike(tenantId)) {
+  if (!useILike) {
     return buildResponse(200, { items: items || [] });
   }
 

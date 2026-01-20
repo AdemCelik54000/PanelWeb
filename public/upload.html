@@ -388,6 +388,15 @@
         cursor: pointer;
         font-weight: 800;
         color: rgba(15, 23, 42, 0.9);
+        touch-action: manipulation;
+      }
+
+      body.planning-painting {
+        overscroll-behavior: none;
+      }
+
+      body.planning-painting .planning-month-day {
+        touch-action: none;
       }
 
       .planning-month-day.muted {
@@ -2031,6 +2040,11 @@
         if (!planningGrid) {
           return;
         }
+        // Do not refresh server state while the user is editing/painting,
+        // otherwise async responses can overwrite the local selection.
+        if (planningState.editMode) {
+          return;
+        }
         try {
           const params = new URLSearchParams();
           if (startISO) params.set("start", startISO);
@@ -2169,6 +2183,80 @@
         }
         recordWorkingDayChange(dateIso, next);
       }
+
+      function applyPaintAtPoint(clientX, clientY) {
+        if (!planningState.paint.active) {
+          return;
+        }
+        const el = document.elementFromPoint(clientX, clientY);
+        const target = el?.closest ? el.closest(".planning-month-day") : null;
+        if (!target) {
+          return;
+        }
+        const todayIso = toISODateLocal(new Date());
+        const dateIso = String(target.dataset.iso || "").trim();
+        if (!dateIso || dateIso < todayIso) {
+          return;
+        }
+        if (planningState.paint.visited.has(dateIso)) {
+          return;
+        }
+        planningState.paint.visited.add(dateIso);
+        setWorkingDayByIso(dateIso, planningState.paint.targetOpen);
+        target.classList.toggle("open", planningState.paint.targetOpen);
+      }
+
+      document.addEventListener("pointermove", (event) => {
+        if (!planningState.paint.active) {
+          return;
+        }
+        if (
+          planningState.paint.pointerId !== null &&
+          event.pointerId !== planningState.paint.pointerId
+        ) {
+          return;
+        }
+        applyPaintAtPoint(event.clientX, event.clientY);
+        if (event.pointerType === "touch") {
+          try {
+            event.preventDefault();
+          } catch (error) {
+            // ignore
+          }
+        }
+      });
+
+      document.addEventListener("pointerup", (event) => {
+        if (!planningState.paint.active) {
+          return;
+        }
+        if (
+          planningState.paint.pointerId !== null &&
+          event.pointerId !== planningState.paint.pointerId
+        ) {
+          return;
+        }
+        planningState.paint.active = false;
+        planningState.paint.visited = new Set();
+        planningState.paint.pointerId = null;
+        document.body.classList.remove("planning-painting");
+      });
+
+      document.addEventListener("pointercancel", (event) => {
+        if (!planningState.paint.active) {
+          return;
+        }
+        if (
+          planningState.paint.pointerId !== null &&
+          event.pointerId !== planningState.paint.pointerId
+        ) {
+          return;
+        }
+        planningState.paint.active = false;
+        planningState.paint.visited = new Set();
+        planningState.paint.pointerId = null;
+        document.body.classList.remove("planning-painting");
+      });
 
       function renderDaySlots(date) {
         if (!planningSlots) {
@@ -2332,8 +2420,9 @@
           cursor <= gridEnd;
           cursor = addDays(cursor, 1)
         ) {
-          const isCurrentMonth = cursor.getMonth() === monthStart.getMonth();
-          const iso = toISODateLocal(cursor);
+          const dayDate = new Date(cursor.getFullYear(), cursor.getMonth(), cursor.getDate());
+          const isCurrentMonth = dayDate.getMonth() === monthStart.getMonth();
+          const iso = toISODateLocal(dayDate);
           const count = (planningState.byDate.get(iso) || []).length;
           const isPast = iso < todayIso;
 
@@ -2344,11 +2433,11 @@
           if (!isCurrentMonth) {
             day.classList.add("muted");
           }
-          day.classList.toggle("active", sameDay(cursor, planningState.selectedDate));
+          day.classList.toggle("active", sameDay(dayDate, planningState.selectedDate));
           day.classList.toggle("open", planningState.openDays.has(iso));
           day.classList.toggle("editing", planningState.editMode);
           day.classList.toggle("muted", isPast || !isCurrentMonth);
-          day.textContent = String(cursor.getDate());
+          day.textContent = String(dayDate.getDate());
           day.title = count ? `${count} rendez-vous` : "";
 
           const clearPaintPress = () => {
@@ -2363,6 +2452,7 @@
             planningState.paint.active = false;
             planningState.paint.visited = new Set();
             planningState.paint.pointerId = null;
+            document.body.classList.remove("planning-painting");
           };
 
           const applyPaintToElement = (el) => {
@@ -2397,6 +2487,7 @@
             planningState.paint.didLongPress = true;
             planningState.paint.active = true;
             planningState.paint.visited = new Set();
+            document.body.classList.add("planning-painting");
 
             const isOpenNow = planningState.openDays.has(iso);
             planningState.paint.targetOpen = !isOpenNow;
@@ -2417,6 +2508,21 @@
             planningState.paint.pointerId = event.pointerId;
             clearPaintPress();
             planningState.paint.pressTimer = setTimeout(startPaint, 320);
+
+            try {
+              day.setPointerCapture(event.pointerId);
+            } catch (error) {
+              // ignore
+            }
+
+            // Avoid page scroll while trying to select days.
+            if (event.pointerType === "touch") {
+              try {
+                event.preventDefault();
+              } catch (error) {
+                // ignore
+              }
+            }
           });
 
           day.addEventListener("pointermove", (event) => {
@@ -2431,6 +2537,13 @@
             }
             const el = document.elementFromPoint(event.clientX, event.clientY);
             applyPaintToElement(el);
+            if (event.pointerType === "touch") {
+              try {
+                event.preventDefault();
+              } catch (error) {
+                // ignore
+              }
+            }
           });
 
           day.addEventListener("pointerup", () => {
@@ -2460,11 +2573,11 @@
               planningState.paint.didLongPress = false;
               return;
             }
-            planningState.selectedDate = cursor;
-            planningState.focusDate = new Date(cursor.getFullYear(), cursor.getMonth(), 1);
+            planningState.selectedDate = dayDate;
+            planningState.focusDate = new Date(dayDate.getFullYear(), dayDate.getMonth(), 1);
             if (planningState.editMode) {
               if (!isPast) {
-                toggleWorkingDay(cursor);
+                toggleWorkingDay(dayDate);
               }
             }
             renderPlanning();
@@ -2556,7 +2669,7 @@
             if (ok) {
               planningState.editMode = false;
               updatePlanningEditToggleUI();
-              renderPlanning();
+              await refreshPlanning();
             } else {
               updatePlanningEditToggleUI();
             }

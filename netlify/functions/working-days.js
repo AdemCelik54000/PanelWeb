@@ -115,6 +115,21 @@ const applyChanges = async ({ tenantId, changes, useILike }) => {
       console.error("Supabase working-days delete error", { error, tenantId, count: toClose.length });
       return false;
     }
+
+    // If a day is closed, remove any rendez-vous for that day.
+    // (Keeps planning consistent: no appointments on closed days.)
+    let rvQuery = supabase.from("rendez_vous").delete();
+    rvQuery = useILike ? rvQuery.ilike("tenant_id", tenantId) : rvQuery.eq("tenant_id", tenantId);
+    rvQuery = rvQuery.in("date", toClose);
+    const { error: rvError } = await rvQuery;
+    if (rvError) {
+      console.error("Supabase rendez_vous delete (day closed) error", {
+        error: rvError,
+        tenantId,
+        count: toClose.length,
+      });
+      return false;
+    }
   }
 
   return true;
