@@ -53,7 +53,25 @@ const loadTenantRecord = async (tenantId) => {
     console.error("Supabase tenant fetch error", { error, tenantId });
     return null;
   }
-  return data;
+  if (data) {
+    return data;
+  }
+
+  const safeForILike = !/[\%_]/.test(String(tenantId || ""));
+  if (!safeForILike) {
+    return null;
+  }
+
+  const fallback = await supabase
+    .from("tenants")
+    .select("id, folder_root, password_salt, password_hash, role")
+    .ilike("id", tenantId)
+    .maybeSingle();
+  if (fallback.error) {
+    console.error("Supabase tenant fetch error", { error: fallback.error, tenantId });
+    return null;
+  }
+  return fallback.data || null;
 };
 
 const loadCategories = async (tenantId) => {
@@ -68,7 +86,27 @@ const loadCategories = async (tenantId) => {
     console.error("Supabase categories fetch error", { error, tenantId });
     return [];
   }
-  return Array.isArray(data) ? data : [];
+  const rows = Array.isArray(data) ? data : [];
+  if (rows.length) {
+    return rows;
+  }
+
+  const safeForILike = !/[\%_]/.test(String(tenantId || ""));
+  if (!safeForILike) {
+    return [];
+  }
+
+  const fallback = await supabase
+    .from("categories")
+    .select("id, label, folder, sort_order")
+    .ilike("tenant_id", tenantId)
+    .order("sort_order", { ascending: true })
+    .order("label", { ascending: true });
+  if (fallback.error) {
+    console.error("Supabase categories fetch error", { error: fallback.error, tenantId });
+    return [];
+  }
+  return Array.isArray(fallback.data) ? fallback.data : [];
 };
 
 const loadSubcategories = async (tenantId) => {
@@ -83,7 +121,27 @@ const loadSubcategories = async (tenantId) => {
     console.error("Supabase subcategories fetch error", { error, tenantId });
     return [];
   }
-  return Array.isArray(data) ? data : [];
+  const rows = Array.isArray(data) ? data : [];
+  if (rows.length) {
+    return rows;
+  }
+
+  const safeForILike = !/[\%_]/.test(String(tenantId || ""));
+  if (!safeForILike) {
+    return [];
+  }
+
+  const fallback = await supabase
+    .from("subcategories")
+    .select("id, category_id, label, folder, sort_order")
+    .ilike("tenant_id", tenantId)
+    .order("sort_order", { ascending: true })
+    .order("label", { ascending: true });
+  if (fallback.error) {
+    console.error("Supabase subcategories fetch error", { error: fallback.error, tenantId });
+    return [];
+  }
+  return Array.isArray(fallback.data) ? fallback.data : [];
 };
 
 const buildFolderTree = (categories, subcategories) => {
