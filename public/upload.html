@@ -257,6 +257,285 @@
         background: linear-gradient(135deg, #2563eb, #0ea5e9);
       }
 
+      .planning-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+      }
+
+      .planning-controls {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+      }
+
+      .mini-btn {
+        border: 1px solid rgba(15, 23, 42, 0.2);
+        background: #ffffff;
+        color: #0f172a;
+        padding: 8px 10px;
+        border-radius: 10px;
+        cursor: pointer;
+        font-weight: 800;
+        font-size: 13px;
+        line-height: 1;
+      }
+
+      .mini-btn:active {
+        transform: scale(0.98);
+      }
+
+      .mini-btn.active {
+        background: linear-gradient(135deg, #10b981, #22c55e);
+        color: #ffffff;
+        border-color: rgba(16, 185, 129, 0.5);
+      }
+
+      .planning-range {
+        font-size: 13px;
+        font-weight: 800;
+        color: rgba(15, 23, 42, 0.8);
+        padding: 0 4px;
+        min-width: 140px;
+        text-align: right;
+      }
+
+      .planning-week {
+        margin-top: 12px;
+        display: grid;
+        gap: 8px;
+        grid-template-columns: repeat(7, minmax(0, 1fr));
+      }
+
+      .planning-day-btn {
+        border: 1px solid rgba(15, 23, 42, 0.16);
+        background: #ffffff;
+        color: #0f172a;
+        border-radius: 12px;
+        padding: 10px 10px;
+        cursor: pointer;
+        text-align: left;
+      }
+
+      .planning-day-btn strong {
+        display: block;
+        font-size: 12px;
+        text-transform: capitalize;
+        color: rgba(15, 23, 42, 0.85);
+      }
+
+      .planning-day-btn span {
+        display: block;
+        margin-top: 4px;
+        font-size: 12px;
+        color: rgba(71, 85, 105, 0.95);
+      }
+
+      .planning-day-btn.active {
+        background: linear-gradient(135deg, rgba(56, 189, 248, 0.16), rgba(249, 115, 22, 0.12));
+        border-color: rgba(56, 189, 248, 0.5);
+      }
+
+      .planning-month {
+        margin-top: 12px;
+        display: grid;
+        gap: 8px;
+        grid-template-columns: repeat(7, minmax(0, 1fr));
+      }
+
+      .planning-month .weekday {
+        font-size: 11px;
+        font-weight: 800;
+        color: rgba(71, 85, 105, 0.95);
+        text-align: center;
+        padding: 6px 0;
+      }
+
+      .planning-month-day {
+        border: 1px solid rgba(15, 23, 42, 0.12);
+        background: rgba(255, 255, 255, 0.92);
+        border-radius: 12px;
+        padding: 10px 0;
+        text-align: center;
+        cursor: pointer;
+        font-weight: 800;
+        color: rgba(15, 23, 42, 0.9);
+      }
+
+      .planning-month-day.muted {
+        opacity: 0.45;
+      }
+
+      .planning-month-day.active {
+        background: linear-gradient(135deg, rgba(16, 185, 129, 0.18), rgba(56, 189, 248, 0.14));
+        border-color: rgba(16, 185, 129, 0.45);
+      }
+
+      .planning-month-day.open {
+        background: rgba(34, 197, 94, 0.16);
+        border-color: rgba(34, 197, 94, 0.55);
+      }
+
+      .planning-month-day.open.active {
+        background: linear-gradient(135deg, rgba(34, 197, 94, 0.22), rgba(56, 189, 248, 0.14));
+      }
+
+      .planning-month-day.editing {
+        outline: 2px dashed rgba(15, 23, 42, 0.18);
+        outline-offset: 2px;
+      }
+
+      .planning-slots {
+        margin-top: 14px;
+        border-top: 1px solid rgba(15, 23, 42, 0.12);
+        padding-top: 10px;
+      }
+
+      .slot-row {
+        display: flex;
+        align-items: flex-start;
+        gap: 10px;
+        padding: 8px 0;
+        border-bottom: 1px dashed rgba(15, 23, 42, 0.10);
+      }
+
+      .slot-time {
+        width: 64px;
+        flex: 0 0 64px;
+        font-size: 12px;
+        font-weight: 900;
+        color: rgba(71, 85, 105, 0.95);
+      }
+
+      .slot-items {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+
+      .slot-item {
+        border-radius: 12px;
+        padding: 10px 12px;
+        border: 1px solid rgba(56, 189, 248, 0.28);
+        background: rgba(56, 189, 248, 0.10);
+        color: rgba(15, 23, 42, 0.9);
+        font-weight: 800;
+        font-size: 13px;
+      }
+
+      .slot-empty {
+        border: none;
+        background: transparent;
+        padding: 0;
+        height: 12px;
+      }
+
+      .slot-item .meta {
+        display: block;
+        margin-top: 4px;
+        font-weight: 700;
+        font-size: 12px;
+        color: rgba(71, 85, 105, 0.95);
+      }
+
+      @media (max-width: 520px) {
+        .planning-header {
+          flex-direction: column;
+          align-items: flex-start;
+        }
+
+        .planning-controls {
+          width: 100%;
+          display: grid;
+          grid-template-columns: 1fr 1fr auto auto;
+          grid-template-rows: auto auto;
+          gap: 8px;
+          justify-content: stretch;
+        }
+
+        #planningModeWeek {
+          grid-column: 1;
+          grid-row: 1;
+        }
+
+        #planningModeMonth {
+          grid-column: 2;
+          grid-row: 1;
+        }
+
+        #planningPrev {
+          grid-column: 3;
+          grid-row: 1;
+        }
+
+        #planningNext {
+          grid-column: 4;
+          grid-row: 1;
+        }
+
+        #planningRange {
+          grid-column: 1 / -1;
+          grid-row: 2;
+          text-align: left;
+          padding: 2px 0 0;
+          min-width: auto;
+        }
+
+        .mini-btn {
+          padding: 7px 8px;
+          font-size: 12px;
+          border-radius: 10px;
+        }
+
+        .planning-week {
+          grid-template-columns: repeat(3, minmax(0, 1fr));
+        }
+
+        .planning-day-btn {
+          padding: 8px 9px;
+        }
+
+        .planning-day-btn strong {
+          font-size: 11px;
+        }
+
+        .planning-day-btn span {
+          font-size: 11px;
+        }
+
+        .planning-slots {
+          max-height: 360px;
+          overflow: auto;
+          -webkit-overflow-scrolling: touch;
+          padding-right: 4px;
+        }
+
+        .slot-row {
+          padding: 5px 0;
+          gap: 8px;
+        }
+
+        .slot-time {
+          width: 52px;
+          flex: 0 0 52px;
+          font-size: 11px;
+        }
+
+        .slot-item {
+          padding: 7px 9px;
+          border-radius: 10px;
+          font-size: 12px;
+        }
+
+        .slot-item .meta {
+          font-size: 11px;
+        }
+      }
+
       .btn-back {
         background: #e2e8f0;
         color: #0f172a;
@@ -782,6 +1061,22 @@
         <div class="grid" id="categoryButtons"></div>
       </section>
 
+      <section id="planningView" class="card">
+        <div class="planning-header">
+          <div class="section-title">Emploi du temps</div>
+          <button class="mini-btn" type="button" id="planningEditToggle">Activer jours</button>
+          <div class="planning-controls">
+            <button class="mini-btn" type="button" id="planningModeMonth">Mois</button>
+            <button class="mini-btn" type="button" id="planningPrev">←</button>
+            <button class="mini-btn" type="button" id="planningNext">→</button>
+            <div class="planning-range" id="planningRange"></div>
+          </div>
+        </div>
+        <div id="planningGrid"></div>
+        <div class="planning-slots" id="planningSlots"></div>
+        <div class="helper" id="planningHelper">Cliquez sur un jour pour voir les créneaux.</div>
+      </section>
+
       <section id="subcategoryView" class="card hidden">
         <button class="btn btn-back" type="button" id="backToCategories">
           ← Retour
@@ -845,6 +1140,8 @@
       const LOGIN_ENDPOINT = "/.netlify/functions/login";
       const TENANT_CONFIG_ENDPOINT = "/.netlify/functions/tenant-config";
       const TENANTS_LIST_ENDPOINT = "/.netlify/functions/tenants-list";
+      const RENDEZVOUS_ENDPOINT = "/.netlify/functions/list-rendezvous";
+      const WORKING_DAYS_ENDPOINT = "/.netlify/functions/working-days";
       const DEFAULT_TENANT_ID = "celikbatiment";
 
       const AUTH_STORAGE_KEY = "site_session_token";
@@ -1335,6 +1632,7 @@
         setLocked(false);
         renderCategories();
         showView("category");
+        await refreshPlanning();
       }
 
       async function authenticate(identifier, password) {
@@ -1374,12 +1672,14 @@
               categories = [];
               renderCategories();
               showView("category");
+              await refreshPlanning();
             }
           } else {
             categories = Array.isArray(data?.tenant?.folders) ? data.tenant.folders : [];
             setLocked(false);
             renderCategories();
             showView("category");
+            await refreshPlanning();
           }
           loginIdentifier.value = "";
         } catch (error) {
@@ -1426,6 +1726,7 @@
           setLocked(false);
           renderCategories();
           showView("category");
+          await refreshPlanning();
           return;
         } catch (error) {
           handleAuthError("Session expiree.");
@@ -1513,6 +1814,551 @@
       const orderStatus = document.getElementById("orderStatus");
       const orderEmpty = document.getElementById("orderEmpty");
 
+      const planningView = document.getElementById("planningView");
+      const planningGrid = document.getElementById("planningGrid");
+      const planningSlots = document.getElementById("planningSlots");
+      const planningHelper = document.getElementById("planningHelper");
+      const planningRange = document.getElementById("planningRange");
+      const planningPrev = document.getElementById("planningPrev");
+      const planningNext = document.getElementById("planningNext");
+      const planningModeMonth = document.getElementById("planningModeMonth");
+      const planningEditToggle = document.getElementById("planningEditToggle");
+
+      const planningState = {
+        mode: "month",
+        focusDate: new Date(),
+        selectedDate: new Date(),
+        byDate: new Map(),
+        openDays: new Set(),
+        editMode: false,
+        pendingDayChanges: new Map(),
+        saveTimer: null,
+      };
+
+      const pad2 = (value) => String(value).padStart(2, "0");
+
+      function toISODateLocal(date) {
+        return `${date.getFullYear()}-${pad2(date.getMonth() + 1)}-${pad2(date.getDate())}`;
+      }
+
+      function fromISODateLocal(isoDate) {
+        const text = String(isoDate || "").trim();
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(text)) {
+          return null;
+        }
+        const [y, m, d] = text.split("-").map((x) => Number(x));
+        if (!Number.isFinite(y) || !Number.isFinite(m) || !Number.isFinite(d)) {
+          return null;
+        }
+        return new Date(y, m - 1, d);
+      }
+
+      function startOfWeekMonday(date) {
+        const value = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+        const dayIndex = (value.getDay() + 6) % 7; // Monday=0
+        value.setDate(value.getDate() - dayIndex);
+        return value;
+      }
+
+      function addDays(date, days) {
+        const value = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+        value.setDate(value.getDate() + Number(days || 0));
+        return value;
+      }
+
+      function addMonths(date, months) {
+        const value = new Date(date.getFullYear(), date.getMonth(), 1);
+        value.setMonth(value.getMonth() + Number(months || 0));
+        return value;
+      }
+
+      function sameDay(left, right) {
+        return (
+          left &&
+          right &&
+          left.getFullYear() === right.getFullYear() &&
+          left.getMonth() === right.getMonth() &&
+          left.getDate() === right.getDate()
+        );
+      }
+
+      function parseHeureToMinutes(value) {
+        const text = String(value || "").trim().toLowerCase();
+        if (!text) {
+          return null;
+        }
+
+        let match = text.match(/^(\d{1,2})\s*(?:h|:)\s*(\d{2})(?::\d{2})?$/);
+        if (!match) {
+          match = text.match(/^(\d{1,2})(\d{2})$/); // ex: 1030
+        }
+        if (!match) {
+          match = text.match(/^(\d{1,2})\s*h\s*$/); // ex: 10h
+        }
+        if (!match) {
+          return null;
+        }
+
+        const hours = Number(match[1]);
+        const minutes = match[2] ? Number(match[2]) : 0;
+        if (!Number.isFinite(hours) || !Number.isFinite(minutes)) {
+          return null;
+        }
+        if (hours < 0 || hours > 23 || minutes < 0 || minutes > 59) {
+          return null;
+        }
+        return hours * 60 + minutes;
+      }
+
+      function formatMinutes(minutes) {
+        const total = Number(minutes);
+        const hours = Math.floor(total / 60);
+        const mins = total % 60;
+        return `${pad2(hours)}:${pad2(mins)}`;
+      }
+
+      function formatHeureLabel(value) {
+        const minutes = parseHeureToMinutes(value);
+        if (minutes === null) {
+          return String(value || "").trim();
+        }
+        const hours = Math.floor(minutes / 60);
+        const mins = minutes % 60;
+        return `${pad2(hours)}h${pad2(mins)}`;
+      }
+
+      function formatRangeLabelWeek(start) {
+        const end = addDays(start, 6);
+        const fmt = new Intl.DateTimeFormat("fr-FR", { day: "2-digit", month: "2-digit" });
+        return `${fmt.format(start)} → ${fmt.format(end)}`;
+      }
+
+      function formatRangeLabelMonth(date) {
+        const fmt = new Intl.DateTimeFormat("fr-FR", { month: "long", year: "numeric" });
+        return fmt.format(new Date(date.getFullYear(), date.getMonth(), 1));
+      }
+
+      function buildByDate(items) {
+        const byDate = new Map();
+        (Array.isArray(items) ? items : []).forEach((item) => {
+          const dateKey = String(item?.date || "").trim();
+          if (!dateKey) {
+            return;
+          }
+          if (!byDate.has(dateKey)) {
+            byDate.set(dateKey, []);
+          }
+          byDate.get(dateKey).push(item);
+        });
+        byDate.forEach((list) => {
+          list.sort((a, b) => {
+            const am = parseHeureToMinutes(a?.heure);
+            const bm = parseHeureToMinutes(b?.heure);
+            if (am === null && bm === null) return 0;
+            if (am === null) return 1;
+            if (bm === null) return -1;
+            return am - bm;
+          });
+        });
+        return byDate;
+      }
+
+      async function loadRendezVousForRange(startISO, endISO) {
+        if (!planningGrid || !planningSlots) {
+          return;
+        }
+
+        planningHelper.textContent = "Chargement du planning…";
+        planningGrid.setAttribute("aria-busy", "true");
+
+        try {
+          const params = new URLSearchParams();
+          if (startISO) params.set("start", startISO);
+          if (endISO) params.set("end", endISO);
+          const url = params.toString()
+            ? `${RENDEZVOUS_ENDPOINT}?${params.toString()}`
+            : RENDEZVOUS_ENDPOINT;
+          const response = await fetchWithAuth(url);
+          if (!response.ok) {
+            planningHelper.textContent = "Impossible de charger le planning.";
+            planningGrid.setAttribute("aria-busy", "false");
+            return;
+          }
+          const data = await response.json();
+          planningState.byDate = buildByDate(Array.isArray(data?.items) ? data.items : []);
+          planningHelper.textContent = "Cliquez sur un jour pour voir les créneaux.";
+        } catch (error) {
+          planningHelper.textContent = "Impossible de charger le planning.";
+        } finally {
+          planningGrid.setAttribute("aria-busy", "false");
+        }
+      }
+
+      async function loadOpenDaysForRange(startISO, endISO) {
+        if (!planningGrid) {
+          return;
+        }
+        try {
+          const params = new URLSearchParams();
+          if (startISO) params.set("start", startISO);
+          if (endISO) params.set("end", endISO);
+          const url = params.toString()
+            ? `${WORKING_DAYS_ENDPOINT}?${params.toString()}`
+            : WORKING_DAYS_ENDPOINT;
+          const response = await fetchWithAuth(url);
+          if (!response.ok) {
+            return;
+          }
+          const data = await response.json();
+          const dates = Array.isArray(data?.open_dates) ? data.open_dates : [];
+          planningState.openDays = new Set(dates.map((d) => String(d || "").trim()).filter(Boolean));
+        } catch (error) {
+          // ignore
+        }
+      }
+
+      function queueWorkingDaySave(dateISO, open) {
+        planningState.pendingDayChanges.set(dateISO, Boolean(open));
+        if (planningState.saveTimer) {
+          clearTimeout(planningState.saveTimer);
+        }
+        planningState.saveTimer = setTimeout(async () => {
+          const changes = Array.from(planningState.pendingDayChanges.entries()).map(
+            ([date, isOpen]) => ({ date, open: isOpen })
+          );
+          planningState.pendingDayChanges.clear();
+          planningState.saveTimer = null;
+
+          if (!changes.length) {
+            return;
+          }
+
+          try {
+            const response = await fetchWithAuth(WORKING_DAYS_ENDPOINT, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ changes }),
+            });
+            if (!response.ok) {
+              planningHelper.textContent = "Impossible d'enregistrer les jours.";
+              return;
+            }
+            planningHelper.textContent = planningState.editMode
+              ? "Mode edition: cliquez/appui long pour ouvrir/fermer." 
+              : "Cliquez sur un jour pour voir les créneaux.";
+          } catch (error) {
+            planningHelper.textContent = "Impossible d'enregistrer les jours.";
+          }
+        }, 600);
+      }
+
+      function toggleWorkingDay(date) {
+        const iso = toISODateLocal(date);
+        const isOpen = planningState.openDays.has(iso);
+        const next = !isOpen;
+        if (next) {
+          planningState.openDays.add(iso);
+        } else {
+          planningState.openDays.delete(iso);
+        }
+        queueWorkingDaySave(iso, next);
+      }
+
+      function renderDaySlots(date) {
+        if (!planningSlots) {
+          return;
+        }
+        const iso = toISODateLocal(date);
+        const items = planningState.byDate.get(iso) || [];
+
+        const itemsByMinute = new Map();
+        items.forEach((item) => {
+          const minute = parseHeureToMinutes(item?.heure);
+          if (minute === null) {
+            return;
+          }
+          if (!itemsByMinute.has(minute)) {
+            itemsByMinute.set(minute, []);
+          }
+          itemsByMinute.get(minute).push(item);
+        });
+
+        const titleFmt = new Intl.DateTimeFormat("fr-FR", {
+          weekday: "long",
+          day: "2-digit",
+          month: "2-digit",
+          year: "numeric",
+        });
+
+        planningSlots.innerHTML = "";
+
+        const title = document.createElement("div");
+        title.className = "section-title";
+        title.textContent = titleFmt.format(date);
+        planningSlots.appendChild(title);
+
+        const startMinutes = 8 * 60;
+        const endMinutes = 20 * 60;
+        for (let minute = startMinutes; minute <= endMinutes; minute += 30) {
+          const row = document.createElement("div");
+          row.className = "slot-row";
+
+          const time = document.createElement("div");
+          time.className = "slot-time";
+          time.textContent = formatMinutes(minute);
+          row.appendChild(time);
+
+          const itemsCell = document.createElement("div");
+          itemsCell.className = "slot-items";
+
+          const slotItems = itemsByMinute.get(minute) || [];
+          if (slotItems.length) {
+            slotItems.forEach((rv) => {
+              const card = document.createElement("div");
+              card.className = "slot-item";
+              const heure = rv?.heure ? formatHeureLabel(rv.heure) : formatHeureLabel(formatMinutes(minute));
+              const prenom = String(rv?.client_prenom || "").trim();
+              const snapchat = String(rv?.client_snapchat || "").trim();
+
+              const title = document.createElement("div");
+              title.textContent = prenom ? `${heure} • ${prenom}` : `Rendez-vous • ${heure}`;
+              card.appendChild(title);
+
+              const meta = document.createElement("span");
+              meta.className = "meta";
+              meta.textContent = snapchat ? `Snapchat: ${snapchat}` : "";
+              if (meta.textContent) {
+                card.appendChild(meta);
+              }
+              itemsCell.appendChild(card);
+            });
+          } else {
+            const empty = document.createElement("div");
+            empty.className = "slot-empty";
+            itemsCell.appendChild(empty);
+          }
+
+          row.appendChild(itemsCell);
+          planningSlots.appendChild(row);
+        }
+
+        try {
+          planningSlots.scrollTop = 0;
+        } catch (error) {
+          // ignore
+        }
+      }
+
+      function renderWeek() {
+        if (!planningGrid) {
+          return;
+        }
+
+        const start = startOfWeekMonday(planningState.focusDate);
+        if (planningRange) {
+          planningRange.textContent = formatRangeLabelWeek(start);
+        }
+
+        planningGrid.className = "planning-week";
+        planningGrid.innerHTML = "";
+
+        const weekdayFmt = new Intl.DateTimeFormat("fr-FR", { weekday: "short" });
+        const dayFmt = new Intl.DateTimeFormat("fr-FR", { day: "2-digit", month: "2-digit" });
+
+        for (let i = 0; i < 7; i++) {
+          const day = addDays(start, i);
+          const iso = toISODateLocal(day);
+          const count = (planningState.byDate.get(iso) || []).length;
+
+          const btn = document.createElement("button");
+          btn.type = "button";
+          btn.className = "planning-day-btn";
+          btn.classList.toggle("active", sameDay(day, planningState.selectedDate));
+
+          const name = document.createElement("strong");
+          name.textContent = weekdayFmt.format(day);
+          const label = document.createElement("span");
+          label.textContent = `${dayFmt.format(day)}${count ? ` • ${count}` : ""}`;
+          btn.appendChild(name);
+          btn.appendChild(label);
+
+          btn.addEventListener("click", () => {
+            planningState.selectedDate = day;
+            renderPlanning();
+          });
+
+          planningGrid.appendChild(btn);
+        }
+
+        renderDaySlots(planningState.selectedDate);
+      }
+
+      function renderMonth() {
+        if (!planningGrid) {
+          return;
+        }
+
+        const monthStart = new Date(planningState.focusDate.getFullYear(), planningState.focusDate.getMonth(), 1);
+        if (planningRange) {
+          planningRange.textContent = formatRangeLabelMonth(monthStart);
+        }
+
+        planningGrid.className = "planning-month";
+        planningGrid.innerHTML = "";
+
+        const weekdays = ["lun", "mar", "mer", "jeu", "ven", "sam", "dim"];
+        weekdays.forEach((w) => {
+          const cell = document.createElement("div");
+          cell.className = "weekday";
+          cell.textContent = w;
+          planningGrid.appendChild(cell);
+        });
+
+        const firstGridDay = startOfWeekMonday(monthStart);
+        const afterMonth = addMonths(monthStart, 1);
+        const lastOfMonth = new Date(afterMonth.getFullYear(), afterMonth.getMonth(), 0);
+        const gridEnd = addDays(startOfWeekMonday(lastOfMonth), 6);
+
+        for (
+          let cursor = new Date(firstGridDay.getFullYear(), firstGridDay.getMonth(), firstGridDay.getDate());
+          cursor <= gridEnd;
+          cursor = addDays(cursor, 1)
+        ) {
+          const isCurrentMonth = cursor.getMonth() === monthStart.getMonth();
+          const iso = toISODateLocal(cursor);
+          const count = (planningState.byDate.get(iso) || []).length;
+
+          const day = document.createElement("button");
+          day.type = "button";
+          day.className = "planning-month-day";
+          if (!isCurrentMonth) {
+            day.classList.add("muted");
+          }
+          day.classList.toggle("active", sameDay(cursor, planningState.selectedDate));
+          day.classList.toggle("open", planningState.openDays.has(iso));
+          day.classList.toggle("editing", planningState.editMode);
+          day.textContent = String(cursor.getDate());
+          day.title = count ? `${count} rendez-vous` : "";
+
+          let pressTimer = null;
+          const clearPress = () => {
+            if (pressTimer) {
+              clearTimeout(pressTimer);
+              pressTimer = null;
+            }
+          };
+
+          const onLongPress = () => {
+            if (!planningState.editMode) {
+              return;
+            }
+            toggleWorkingDay(cursor);
+            renderPlanning();
+          };
+
+          day.addEventListener("touchstart", () => {
+            clearPress();
+            pressTimer = setTimeout(onLongPress, 350);
+          });
+          day.addEventListener("touchend", clearPress);
+          day.addEventListener("touchcancel", clearPress);
+          day.addEventListener("mousedown", () => {
+            clearPress();
+            pressTimer = setTimeout(onLongPress, 350);
+          });
+          day.addEventListener("mouseup", clearPress);
+          day.addEventListener("mouseleave", clearPress);
+
+          day.addEventListener("click", () => {
+            planningState.selectedDate = cursor;
+            planningState.focusDate = new Date(cursor.getFullYear(), cursor.getMonth(), 1);
+            if (planningState.editMode) {
+              toggleWorkingDay(cursor);
+            }
+            renderPlanning();
+          });
+
+          planningGrid.appendChild(day);
+        }
+
+        renderDaySlots(planningState.selectedDate);
+      }
+
+      async function refreshPlanning() {
+        if (!planningView || !isAuthenticated) {
+          return;
+        }
+
+        if (isAdmin && !selectedTenantId) {
+          planningState.byDate = new Map();
+          planningHelper.textContent = "Choisissez un client pour afficher le planning.";
+          renderPlanning();
+          return;
+        }
+
+        planningModeMonth?.classList.toggle("active", planningState.mode === "month");
+
+        if (planningEditToggle) {
+          planningEditToggle.classList.toggle("active", planningState.editMode);
+          planningEditToggle.textContent = planningState.editMode ? "Edition jours" : "Activer jours";
+        }
+
+        const monthStart = new Date(planningState.focusDate.getFullYear(), planningState.focusDate.getMonth(), 1);
+        const afterMonth = addMonths(monthStart, 1);
+        const monthEnd = new Date(afterMonth.getFullYear(), afterMonth.getMonth(), 0);
+        await Promise.all([
+          loadRendezVousForRange(toISODateLocal(monthStart), toISODateLocal(monthEnd)),
+          loadOpenDaysForRange(toISODateLocal(monthStart), toISODateLocal(monthEnd)),
+        ]);
+
+        renderPlanning();
+      }
+
+      function renderPlanning() {
+        if (!planningView) {
+          return;
+        }
+        planningModeMonth?.classList.toggle("active", planningState.mode === "month");
+        renderMonth();
+      }
+
+      if (planningModeMonth && planningPrev && planningNext) {
+        planningModeMonth.addEventListener("click", async () => {
+          planningState.mode = "month";
+          await refreshPlanning();
+        });
+
+        planningPrev.addEventListener("click", async () => {
+          planningState.focusDate = addMonths(planningState.focusDate, -1);
+          planningState.selectedDate = new Date(
+            planningState.focusDate.getFullYear(),
+            planningState.focusDate.getMonth(),
+            1
+          );
+          await refreshPlanning();
+        });
+
+        planningNext.addEventListener("click", async () => {
+          planningState.focusDate = addMonths(planningState.focusDate, 1);
+          planningState.selectedDate = new Date(
+            planningState.focusDate.getFullYear(),
+            planningState.focusDate.getMonth(),
+            1
+          );
+          await refreshPlanning();
+        });
+      }
+
+      if (planningEditToggle) {
+        planningEditToggle.addEventListener("click", async () => {
+          planningState.editMode = !planningState.editMode;
+          planningHelper.textContent = planningState.editMode
+            ? "Mode edition: cliquez/appui long pour ouvrir/fermer." 
+            : "Cliquez sur un jour pour voir les créneaux.";
+          renderPlanning();
+        });
+      }
+
       function renderCategories() {
         categoryButtons.innerHTML = "";
         categories.forEach((category, index) => {
@@ -1539,6 +2385,9 @@
 
       function showView(view) {
         categoryView.classList.toggle("hidden", view !== "category");
+        if (planningView) {
+          planningView.classList.toggle("hidden", view !== "category");
+        }
         subcategoryView.classList.toggle("hidden", view !== "subcategory");
         const inUpload = view === "upload";
         uploadView.classList.toggle("hidden", !inUpload);
