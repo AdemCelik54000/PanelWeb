@@ -185,9 +185,8 @@ const getTenantById = async (id) => {
   ]);
   const folders = buildFolderTree(categories, subcategories);
   const allowedFolders = new Set(flattenFolders(folders));
-  const folderRoot = tenantRow.folder_root
-    ? String(tenantRow.folder_root)
-    : toSafeTenantFolder(tenantRow.id);
+  const folderRootSource = tenantRow.folder_root ? tenantRow.folder_root : tenantRow.id;
+  const folderRoot = toSafeTenantFolder(folderRootSource);
   const role = tenantRow.role ? String(tenantRow.role) : "client";
 
   return {
