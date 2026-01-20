@@ -294,6 +294,31 @@
         border-color: rgba(16, 185, 129, 0.5);
       }
 
+      .mini-btn.danger {
+        background: linear-gradient(135deg, #dc2626, #ef4444);
+        color: #ffffff;
+        border-color: rgba(239, 68, 68, 0.55);
+      }
+
+      @keyframes pulseSave {
+        0% {
+          transform: scale(1);
+          filter: brightness(1);
+        }
+        50% {
+          transform: scale(1.03);
+          filter: brightness(1.05);
+        }
+        100% {
+          transform: scale(1);
+          filter: brightness(1);
+        }
+      }
+
+      .mini-btn.pulse {
+        animation: pulseSave 0.95s ease-in-out infinite;
+      }
+
       .planning-range {
         font-size: 13px;
         font-weight: 800;
@@ -1830,9 +1855,9 @@
         selectedDate: new Date(),
         byDate: new Map(),
         openDays: new Set(),
+        baseOpenDays: new Set(),
         editMode: false,
         pendingDayChanges: new Map(),
-        saveTimer: null,
         paint: {
           active: false,
           targetOpen: true,
@@ -2019,49 +2044,100 @@
           }
           const data = await response.json();
           const dates = Array.isArray(data?.open_dates) ? data.open_dates : [];
-          planningState.openDays = new Set(dates.map((d) => String(d || "").trim()).filter(Boolean));
+          const todayIso = toISODateLocal(new Date());
+          planningState.openDays = new Set(
+            dates
+              .map((d) => String(d || "").trim())
+              .filter(Boolean)
+              .filter((d) => d >= todayIso)
+          );
+          if (!planningState.editMode) {
+            planningState.baseOpenDays = new Set(planningState.openDays);
+            planningState.pendingDayChanges = new Map();
+          }
         } catch (error) {
           // ignore
         }
       }
 
-      function queueWorkingDaySave(dateISO, open) {
-        planningState.pendingDayChanges.set(dateISO, Boolean(open));
-        if (planningState.saveTimer) {
-          clearTimeout(planningState.saveTimer);
+      function hasPendingWorkingDayChanges() {
+        return (planningState.pendingDayChanges?.size || 0) > 0;
+      }
+
+      function updatePlanningEditToggleUI() {
+        if (!planningEditToggle) {
+          return;
         }
-        planningState.saveTimer = setTimeout(async () => {
-          const changes = Array.from(planningState.pendingDayChanges.entries()).map(
-            ([date, isOpen]) => ({ date, open: isOpen })
-          );
-          planningState.pendingDayChanges.clear();
-          planningState.saveTimer = null;
 
-          if (!changes.length) {
-            return;
-          }
+        const dirty = hasPendingWorkingDayChanges();
+        planningEditToggle.classList.toggle("active", planningState.editMode && !dirty);
+        planningEditToggle.classList.toggle("danger", planningState.editMode && dirty);
+        planningEditToggle.classList.toggle("pulse", planningState.editMode && dirty);
+        planningEditToggle.textContent = !planningState.editMode
+          ? "Activer jours"
+          : dirty
+            ? "Enregistrer"
+            : "Edition jours";
+      }
 
-          try {
-            const response = await fetchWithAuth(WORKING_DAYS_ENDPOINT, {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ changes }),
-            });
-            if (!response.ok) {
-              planningHelper.textContent = "Impossible d'enregistrer les jours.";
-              return;
-            }
-            planningHelper.textContent = planningState.editMode
-              ? "Mode edition: cliquez/appui long pour ouvrir/fermer." 
-              : "Cliquez sur un jour pour voir les créneaux.";
-          } catch (error) {
+      function recordWorkingDayChange(dateISO, open) {
+        const iso = String(dateISO || "").trim();
+        if (!iso) {
+          return;
+        }
+
+        const todayIso = toISODateLocal(new Date());
+        if (iso < todayIso) {
+          return;
+        }
+
+        const nextOpen = Boolean(open);
+        const baseOpen = planningState.baseOpenDays.has(iso);
+        if (nextOpen === baseOpen) {
+          planningState.pendingDayChanges.delete(iso);
+        } else {
+          planningState.pendingDayChanges.set(iso, nextOpen);
+        }
+        updatePlanningEditToggleUI();
+      }
+
+      async function savePendingWorkingDayChanges() {
+        const changes = Array.from(planningState.pendingDayChanges.entries()).map(
+          ([date, isOpen]) => ({ date, open: isOpen })
+        );
+        if (!changes.length) {
+          return true;
+        }
+
+        try {
+          planningHelper.textContent = "Enregistrement des jours…";
+          const response = await fetchWithAuth(WORKING_DAYS_ENDPOINT, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ changes }),
+          });
+          if (!response.ok) {
             planningHelper.textContent = "Impossible d'enregistrer les jours.";
+            return false;
           }
-        }, 600);
+
+          planningState.baseOpenDays = new Set(planningState.openDays);
+          planningState.pendingDayChanges = new Map();
+          updatePlanningEditToggleUI();
+          planningHelper.textContent = "Jours enregistrés.";
+          return true;
+        } catch (error) {
+          planningHelper.textContent = "Impossible d'enregistrer les jours.";
+          return false;
+        }
       }
 
       function toggleWorkingDay(date) {
         const iso = toISODateLocal(date);
+        const todayIso = toISODateLocal(new Date());
+        if (iso < todayIso) {
+          return;
+        }
         const isOpen = planningState.openDays.has(iso);
         const next = !isOpen;
         if (next) {
@@ -2069,12 +2145,16 @@
         } else {
           planningState.openDays.delete(iso);
         }
-        queueWorkingDaySave(iso, next);
+        recordWorkingDayChange(iso, next);
       }
 
       function setWorkingDayByIso(iso, open) {
         const dateIso = String(iso || "").trim();
         if (!dateIso) {
+          return;
+        }
+        const todayIso = toISODateLocal(new Date());
+        if (dateIso < todayIso) {
           return;
         }
         const next = Boolean(open);
@@ -2087,7 +2167,7 @@
         } else {
           planningState.openDays.delete(dateIso);
         }
-        queueWorkingDaySave(dateIso, next);
+        recordWorkingDayChange(dateIso, next);
       }
 
       function renderDaySlots(date) {
@@ -2224,6 +2304,8 @@
           return;
         }
 
+        const todayIso = toISODateLocal(new Date());
+
         const monthStart = new Date(planningState.focusDate.getFullYear(), planningState.focusDate.getMonth(), 1);
         if (planningRange) {
           planningRange.textContent = formatRangeLabelMonth(monthStart);
@@ -2253,6 +2335,7 @@
           const isCurrentMonth = cursor.getMonth() === monthStart.getMonth();
           const iso = toISODateLocal(cursor);
           const count = (planningState.byDate.get(iso) || []).length;
+          const isPast = iso < todayIso;
 
           const day = document.createElement("button");
           day.type = "button";
@@ -2264,6 +2347,7 @@
           day.classList.toggle("active", sameDay(cursor, planningState.selectedDate));
           day.classList.toggle("open", planningState.openDays.has(iso));
           day.classList.toggle("editing", planningState.editMode);
+          day.classList.toggle("muted", isPast || !isCurrentMonth);
           day.textContent = String(cursor.getDate());
           day.title = count ? `${count} rendez-vous` : "";
 
@@ -2290,6 +2374,9 @@
             if (!dateIso) {
               return;
             }
+            if (dateIso < todayIso) {
+              return;
+            }
             if (planningState.paint.visited.has(dateIso)) {
               return;
             }
@@ -2300,6 +2387,10 @@
 
           const startPaint = () => {
             if (!planningState.editMode) {
+              return;
+            }
+
+            if (iso < todayIso) {
               return;
             }
 
@@ -2372,7 +2463,9 @@
             planningState.selectedDate = cursor;
             planningState.focusDate = new Date(cursor.getFullYear(), cursor.getMonth(), 1);
             if (planningState.editMode) {
-              toggleWorkingDay(cursor);
+              if (!isPast) {
+                toggleWorkingDay(cursor);
+              }
             }
             renderPlanning();
           });
@@ -2397,10 +2490,7 @@
 
         planningModeMonth?.classList.toggle("active", planningState.mode === "month");
 
-        if (planningEditToggle) {
-          planningEditToggle.classList.toggle("active", planningState.editMode);
-          planningEditToggle.textContent = planningState.editMode ? "Edition jours" : "Activer jours";
-        }
+        updatePlanningEditToggleUI();
 
         const monthStart = new Date(planningState.focusDate.getFullYear(), planningState.focusDate.getMonth(), 1);
         const afterMonth = addMonths(monthStart, 1);
@@ -2450,10 +2540,33 @@
 
       if (planningEditToggle) {
         planningEditToggle.addEventListener("click", async () => {
-          planningState.editMode = !planningState.editMode;
-          planningHelper.textContent = planningState.editMode
-            ? "Mode edition: cliquez/appui long pour ouvrir/fermer." 
-            : "Cliquez sur un jour pour voir les créneaux.";
+          if (!planningState.editMode) {
+            planningState.editMode = true;
+            planningState.baseOpenDays = new Set(planningState.openDays);
+            planningState.pendingDayChanges = new Map();
+            planningHelper.textContent = "Mode edition: appui long + glisser pour ouvrir/fermer plusieurs jours.";
+            updatePlanningEditToggleUI();
+            renderPlanning();
+            return;
+          }
+
+          // Already in edit mode
+          if (hasPendingWorkingDayChanges()) {
+            const ok = await savePendingWorkingDayChanges();
+            if (ok) {
+              planningState.editMode = false;
+              updatePlanningEditToggleUI();
+              renderPlanning();
+            } else {
+              updatePlanningEditToggleUI();
+            }
+            return;
+          }
+
+          // No pending changes: exit edit mode
+          planningState.editMode = false;
+          planningHelper.textContent = "Cliquez sur un jour pour voir les créneaux.";
+          updatePlanningEditToggleUI();
           renderPlanning();
         });
       }

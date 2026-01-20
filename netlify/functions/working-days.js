@@ -21,6 +21,24 @@ const normalizeDate = (value) => {
 
 const isSafeForILike = (value) => !/[\%_]/.test(String(value || ""));
 
+const todayIsoUtc = () => new Date().toISOString().slice(0, 10);
+
+const cleanupPastDays = async ({ tenantId, useILike, beforeDate }) => {
+  const cutoff = normalizeDate(beforeDate) || todayIsoUtc();
+  const supabase = getSupabaseClient();
+
+  let query = supabase.from(TABLE).delete();
+  query = useILike ? query.ilike("tenant_id", tenantId) : query.eq("tenant_id", tenantId);
+  query = query.lt("date", cutoff);
+
+  const { error } = await query;
+  if (error) {
+    console.error("Supabase working-days cleanup error", { error, tenantId, cutoff });
+    return false;
+  }
+  return true;
+};
+
 const listOpenDates = async ({ tenantId, startDate, endDate, useILike }) => {
   const supabase = getSupabaseClient();
   let query = supabase
@@ -53,12 +71,17 @@ const applyChanges = async ({ tenantId, changes, useILike }) => {
   const supabase = getSupabaseClient();
   const safeChanges = Array.isArray(changes) ? changes : [];
 
+  const todayIso = todayIsoUtc();
+
   const toOpen = [];
   const toClose = [];
 
   safeChanges.forEach((change) => {
     const date = normalizeDate(change?.date);
     if (!date) {
+      return;
+    }
+    if (date < todayIso) {
       return;
     }
     const open = Boolean(change?.open);
@@ -120,6 +143,12 @@ exports.handler = async (event) => {
     return buildResponse(400, { error: "missing_tenant" });
   }
 
+  const useILike = isSafeForILike(tenantId);
+  const cleanupOk = await cleanupPastDays({ tenantId, useILike, beforeDate: todayIsoUtc() });
+  if (!cleanupOk) {
+    return buildResponse(500, { error: "db_error" });
+  }
+
   const startDate = normalizeDate(event?.queryStringParameters?.start);
   const endDate = normalizeDate(event?.queryStringParameters?.end);
 
@@ -128,7 +157,7 @@ exports.handler = async (event) => {
     if (dates === null) {
       return buildResponse(500, { error: "db_error" });
     }
-    if (!dates.length && isSafeForILike(tenantId)) {
+    if (!dates.length && useILike) {
       const fallback = await listOpenDates({ tenantId, startDate, endDate, useILike: true });
       if (Array.isArray(fallback)) {
         dates = fallback;
@@ -153,7 +182,7 @@ exports.handler = async (event) => {
     const ok = await applyChanges({
       tenantId,
       changes,
-      useILike: isSafeForILike(tenantId),
+      useILike,
     });
     if (!ok) {
       return buildResponse(500, { error: "db_error" });
