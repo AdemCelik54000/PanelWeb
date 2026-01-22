@@ -520,6 +520,73 @@
         font-size: 13px;
       }
 
+      .slot-item-top {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+      }
+
+      .slot-delete-btn {
+        border: 1px solid rgba(239, 68, 68, 0.35);
+        background: rgba(239, 68, 68, 0.12);
+        color: #991b1b;
+        border-radius: 10px;
+        height: 30px;
+        padding: 0 10px;
+        font-weight: 800;
+        font-size: 12px;
+        cursor: pointer;
+      }
+
+      .slot-delete-btn:active {
+        transform: scale(0.98);
+      }
+
+      .confirm-overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(15, 23, 42, 0.55);
+        display: none;
+        align-items: center;
+        justify-content: center;
+        padding: 18px;
+        z-index: 10000;
+      }
+
+      .confirm-overlay.active {
+        display: flex;
+      }
+
+      .confirm-modal {
+        width: min(520px, 100%);
+        background: #ffffff;
+        border-radius: 16px;
+        border: 1px solid rgba(15, 23, 42, 0.12);
+        box-shadow: 0 24px 60px rgba(15, 23, 42, 0.35);
+        padding: 16px;
+      }
+
+      .confirm-title {
+        font-weight: 900;
+        font-size: 16px;
+        color: #0f172a;
+        margin-bottom: 6px;
+      }
+
+      .confirm-text {
+        font-size: 13px;
+        color: rgba(15, 23, 42, 0.85);
+        line-height: 1.35;
+        margin-bottom: 14px;
+      }
+
+      .confirm-actions {
+        display: flex;
+        gap: 10px;
+        justify-content: flex-end;
+      }
+
       .slot-empty {
         border: none;
         background: transparent;
@@ -694,6 +761,33 @@
         font-size: 12px;
         color: var(--muted);
         margin-top: 6px;
+      }
+
+      .hours-editor {
+        display: flex;
+        align-items: end;
+        gap: 10px;
+        flex-wrap: wrap;
+        margin-top: 8px;
+      }
+
+      .hours-editor label {
+        display: grid;
+        gap: 4px;
+        font-size: 12px;
+        color: rgba(15, 23, 42, 0.85);
+        font-weight: 700;
+      }
+
+      .hours-editor input[type="time"] {
+        height: 36px;
+        padding: 6px 10px;
+        border-radius: 10px;
+        border: 1px solid rgba(15, 23, 42, 0.2);
+        background: #ffffff;
+        color: #0f172a;
+        font-weight: 700;
+        min-width: 120px;
       }
 
       .hidden {
@@ -1146,6 +1240,17 @@
         </div>
       </div>
     </div>
+
+    <div class="confirm-overlay" id="confirmOverlay" aria-hidden="true">
+      <div class="confirm-modal" role="dialog" aria-modal="true" aria-labelledby="confirmTitle">
+        <div class="confirm-title" id="confirmTitle">Confirmer</div>
+        <div class="confirm-text" id="confirmText"></div>
+        <div class="confirm-actions">
+          <button class="mini-btn" type="button" id="confirmCancel">Annuler</button>
+          <button class="mini-btn danger" type="button" id="confirmOk">Supprimer</button>
+        </div>
+      </div>
+    </div>
     <div class="shell">
       <header>
         <div class="header-actions">
@@ -1208,7 +1313,20 @@
         </div>
         <div id="planningGrid"></div>
         <div class="planning-slots" id="planningSlots"></div>
-        <div class="helper" id="planningHelper">Cliquez sur un jour pour voir les créneaux.</div>
+        <div class="helper" id="planningHelper">
+          <div class="hours-editor" id="planningHoursEditor">
+            <label>
+              Début
+              <input type="time" id="planningHoursStart" value="08:00" />
+            </label>
+            <label>
+              Fin
+              <input type="time" id="planningHoursEnd" value="18:00" />
+            </label>
+            <button class="mini-btn" type="button" id="planningApplyHours">Appliquer au jour</button>
+          </div>
+          <div class="helper" id="planningHelperMessage"></div>
+        </div>
       </section>
 
       <section id="subcategoryView" class="card hidden">
@@ -1275,6 +1393,7 @@
       const TENANT_CONFIG_ENDPOINT = "/.netlify/functions/tenant-config";
       const TENANTS_LIST_ENDPOINT = "/.netlify/functions/tenants-list";
       const RENDEZVOUS_ENDPOINT = "/.netlify/functions/list-rendezvous";
+      const DELETE_RENDEZVOUS_ENDPOINT = "/.netlify/functions/delete-rendezvous";
       const WORKING_DAYS_ENDPOINT = "/.netlify/functions/working-days";
       const DEFAULT_TENANT_ID = "celikbatiment";
 
@@ -1294,6 +1413,11 @@
       const loginPassword = document.getElementById("loginPassword");
       const loginError = document.getElementById("loginError");
       const logoutButton = document.getElementById("logoutButton");
+      const confirmOverlay = document.getElementById("confirmOverlay");
+      const confirmTitle = document.getElementById("confirmTitle");
+      const confirmText = document.getElementById("confirmText");
+      const confirmCancel = document.getElementById("confirmCancel");
+      const confirmOk = document.getElementById("confirmOk");
       const disabledNotice = document.getElementById("disabledNotice");
       const headerTitle = document.querySelector("header h1");
       const headerSubtitle = document.querySelector("header p");
@@ -1677,6 +1801,63 @@
         } catch (error) {
           // ignore navigation errors
         }
+      }
+
+      function showConfirmDialog({ title, message, okText, cancelText }) {
+        return new Promise((resolve) => {
+          if (!confirmOverlay || !confirmOk || !confirmCancel) {
+            resolve(window.confirm(message || "Confirmer ?"));
+            return;
+          }
+
+          if (confirmTitle) {
+            confirmTitle.textContent = title || "Confirmer";
+          }
+          if (confirmText) {
+            confirmText.textContent = message || "";
+          }
+          confirmOk.textContent = okText || "OK";
+          confirmCancel.textContent = cancelText || "Annuler";
+
+          const cleanup = () => {
+            confirmOverlay.classList.remove("active");
+            confirmOverlay.setAttribute("aria-hidden", "true");
+            confirmOk.removeEventListener("click", onOk);
+            confirmCancel.removeEventListener("click", onCancel);
+            confirmOverlay.removeEventListener("click", onBackdrop);
+            document.removeEventListener("keydown", onKeyDown);
+          };
+
+          const onOk = () => {
+            cleanup();
+            resolve(true);
+          };
+
+          const onCancel = () => {
+            cleanup();
+            resolve(false);
+          };
+
+          const onBackdrop = (event) => {
+            if (event.target === confirmOverlay) {
+              onCancel();
+            }
+          };
+
+          const onKeyDown = (event) => {
+            if (event.key === "Escape") {
+              onCancel();
+            }
+          };
+
+          confirmOk.addEventListener("click", onOk);
+          confirmCancel.addEventListener("click", onCancel);
+          confirmOverlay.addEventListener("click", onBackdrop);
+          document.addEventListener("keydown", onKeyDown);
+
+          confirmOverlay.classList.add("active");
+          confirmOverlay.setAttribute("aria-hidden", "false");
+        });
       }
 
       function normalizeFeatures(value) {
@@ -2069,6 +2250,10 @@
       const planningModeMonth = document.getElementById("planningModeMonth");
       const planningEditToggle = document.getElementById("planningEditToggle");
       const planningRefreshButton = document.getElementById("planningRefreshButton");
+      const planningHoursStart = document.getElementById("planningHoursStart");
+      const planningHoursEnd = document.getElementById("planningHoursEnd");
+      const planningApplyHours = document.getElementById("planningApplyHours");
+      const planningHelperMessage = document.getElementById("planningHelperMessage");
 
       const planningState = {
         mode: "month",
@@ -2076,6 +2261,7 @@
         selectedDate: new Date(),
         byDate: new Map(),
         openDays: new Set(),
+        dayHours: new Map(),
         baseOpenDays: new Set(),
         editMode: false,
         pendingDayChanges: new Map(),
@@ -2222,7 +2408,9 @@
           return;
         }
 
-        planningHelper.textContent = "Chargement du planning…";
+        if (planningHelperMessage) {
+          planningHelperMessage.textContent = "Chargement du planning…";
+        }
         planningGrid.setAttribute("aria-busy", "true");
 
         try {
@@ -2234,15 +2422,21 @@
             : RENDEZVOUS_ENDPOINT;
           const response = await fetchWithAuth(url);
           if (!response.ok) {
-            planningHelper.textContent = "Impossible de charger le planning.";
+            if (planningHelperMessage) {
+              planningHelperMessage.textContent = "Impossible de charger le planning.";
+            }
             planningGrid.setAttribute("aria-busy", "false");
             return;
           }
           const data = await response.json();
           planningState.byDate = buildByDate(Array.isArray(data?.items) ? data.items : []);
-          planningHelper.textContent = "Cliquez sur un jour pour voir les créneaux.";
+          if (planningHelperMessage) {
+            planningHelperMessage.textContent = "";
+          }
         } catch (error) {
-          planningHelper.textContent = "Impossible de charger le planning.";
+          if (planningHelperMessage) {
+            planningHelperMessage.textContent = "Impossible de charger le planning.";
+          }
         } finally {
           planningGrid.setAttribute("aria-busy", "false");
         }
@@ -2269,14 +2463,37 @@
             return;
           }
           const data = await response.json();
+          const days = Array.isArray(data?.open_days) ? data.open_days : null;
           const dates = Array.isArray(data?.open_dates) ? data.open_dates : [];
           const todayIso = toISODateLocal(new Date());
-          planningState.openDays = new Set(
+
+          const nextOpenDays = new Set();
+          const nextDayHours = new Map();
+
+          if (Array.isArray(days) && days.length) {
+            days.forEach((row) => {
+              const date = String(row?.date || "").trim();
+              if (!date || date < todayIso) {
+                return;
+              }
+              nextOpenDays.add(date);
+              const start_time = String(row?.start_time || "08:00").slice(0, 5) || "08:00";
+              const end_time = String(row?.end_time || "18:00").slice(0, 5) || "18:00";
+              nextDayHours.set(date, { start: start_time, end: end_time });
+            });
+          } else {
             dates
               .map((d) => String(d || "").trim())
               .filter(Boolean)
               .filter((d) => d >= todayIso)
-          );
+              .forEach((d) => {
+                nextOpenDays.add(d);
+                nextDayHours.set(d, { start: "08:00", end: "18:00" });
+              });
+          }
+
+          planningState.openDays = nextOpenDays;
+          planningState.dayHours = nextDayHours;
           if (!planningState.editMode) {
             planningState.baseOpenDays = new Set(planningState.openDays);
             planningState.pendingDayChanges = new Map();
@@ -2336,24 +2553,32 @@
         }
 
         try {
-          planningHelper.textContent = "Enregistrement des jours…";
+          if (planningHelperMessage) {
+            planningHelperMessage.textContent = "Enregistrement des jours…";
+          }
           const response = await fetchWithAuth(WORKING_DAYS_ENDPOINT, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ changes }),
           });
           if (!response.ok) {
-            planningHelper.textContent = "Impossible d'enregistrer les jours.";
+            if (planningHelperMessage) {
+              planningHelperMessage.textContent = "Impossible d'enregistrer les jours.";
+            }
             return false;
           }
 
           planningState.baseOpenDays = new Set(planningState.openDays);
           planningState.pendingDayChanges = new Map();
           updatePlanningEditToggleUI();
-          planningHelper.textContent = "Jours enregistrés.";
+          if (planningHelperMessage) {
+            planningHelperMessage.textContent = "Jours enregistrés.";
+          }
           return true;
         } catch (error) {
-          planningHelper.textContent = "Impossible d'enregistrer les jours.";
+          if (planningHelperMessage) {
+            planningHelperMessage.textContent = "Impossible d'enregistrer les jours.";
+          }
           return false;
         }
       }
@@ -2368,8 +2593,12 @@
         const next = !isOpen;
         if (next) {
           planningState.openDays.add(iso);
+          if (!planningState.dayHours.has(iso)) {
+            planningState.dayHours.set(iso, { start: "08:00", end: "18:00" });
+          }
         } else {
           planningState.openDays.delete(iso);
+          planningState.dayHours.delete(iso);
         }
         recordWorkingDayChange(iso, next);
       }
@@ -2390,8 +2619,12 @@
         }
         if (next) {
           planningState.openDays.add(dateIso);
+          if (!planningState.dayHours.has(dateIso)) {
+            planningState.dayHours.set(dateIso, { start: "08:00", end: "18:00" });
+          }
         } else {
           planningState.openDays.delete(dateIso);
+          planningState.dayHours.delete(dateIso);
         }
         recordWorkingDayChange(dateIso, next);
       }
@@ -2477,6 +2710,14 @@
         const iso = toISODateLocal(date);
         const items = planningState.byDate.get(iso) || [];
 
+        const hours = planningState.dayHours.get(iso) || { start: "08:00", end: "18:00" };
+        if (planningHoursStart) {
+          planningHoursStart.value = hours.start || "08:00";
+        }
+        if (planningHoursEnd) {
+          planningHoursEnd.value = hours.end || "18:00";
+        }
+
         const itemsByMinute = new Map();
         items.forEach((item) => {
           const minute = parseHeureToMinutes(item?.heure);
@@ -2503,8 +2744,8 @@
         title.textContent = titleFmt.format(date);
         planningSlots.appendChild(title);
 
-        const startMinutes = 8 * 60;
-        const endMinutes = 20 * 60;
+        const startMinutes = parseHeureToMinutes(hours.start) ?? 8 * 60;
+        const endMinutes = parseHeureToMinutes(hours.end) ?? 18 * 60;
         for (let minute = startMinutes; minute <= endMinutes; minute += 30) {
           const row = document.createElement("div");
           row.className = "slot-row";
@@ -2526,9 +2767,72 @@
               const prenom = String(rv?.client_prenom || "").trim();
               const snapchat = String(rv?.client_snapchat || "").trim();
 
+              const top = document.createElement("div");
+              top.className = "slot-item-top";
+
               const title = document.createElement("div");
               title.textContent = prenom ? `${heure} • ${prenom}` : `Rendez-vous • ${heure}`;
-              card.appendChild(title);
+              top.appendChild(title);
+
+              const deleteBtn = document.createElement("button");
+              deleteBtn.type = "button";
+              deleteBtn.className = "slot-delete-btn";
+              deleteBtn.textContent = "Supprimer";
+              deleteBtn.addEventListener("click", async () => {
+                const ok = await showConfirmDialog({
+                  title: "Supprimer le rendez-vous ?",
+                  message: "Voulez-vous vraiment supprimer ce rendez-vous ?",
+                  okText: "Oui, supprimer",
+                  cancelText: "Annuler",
+                });
+                if (!ok) {
+                  return;
+                }
+
+                if (planningHelperMessage) {
+                  planningHelperMessage.textContent = "Suppression…";
+                }
+
+                try {
+                  const response = await fetchWithAuth(DELETE_RENDEZVOUS_ENDPOINT, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                      date: iso,
+                      heure: rv?.heure || formatMinutes(minute),
+                      user_id: rv?.user_id,
+                    }),
+                  });
+
+                  if (!response.ok) {
+                    if (planningHelperMessage) {
+                      planningHelperMessage.textContent = "Impossible de supprimer le rendez-vous.";
+                    }
+                    return;
+                  }
+
+                  // Remove locally and refresh.
+                  const list = planningState.byDate.get(iso) || [];
+                  const next = list.filter(
+                    (item) =>
+                      !(String(item?.user_id || "") === String(rv?.user_id || "") &&
+                        String(item?.heure || "").slice(0, 5) === String(rv?.heure || "").slice(0, 5))
+                  );
+                  planningState.byDate.set(iso, next);
+
+                  if (planningHelperMessage) {
+                    planningHelperMessage.textContent = "Rendez-vous supprimé.";
+                  }
+                  await refreshPlanning();
+                } catch (error) {
+                  if (planningHelperMessage) {
+                    planningHelperMessage.textContent = "Impossible de supprimer le rendez-vous.";
+                  }
+                }
+              });
+              top.appendChild(deleteBtn);
+
+              card.appendChild(top);
 
               const meta = document.createElement("span");
               meta.className = "meta";
@@ -2704,9 +3008,11 @@
             const isOpenNow = planningState.openDays.has(iso);
             planningState.paint.targetOpen = !isOpenNow;
 
-            planningHelper.textContent = planningState.paint.targetOpen
-              ? "Glissez pour ouvrir plusieurs jours."
-              : "Glissez pour fermer plusieurs jours.";
+            if (planningHelperMessage) {
+              planningHelperMessage.textContent = planningState.paint.targetOpen
+                ? "Glissez pour ouvrir plusieurs jours."
+                : "Glissez pour fermer plusieurs jours.";
+            }
 
             applyPaintToElement(day);
           };
@@ -2762,9 +3068,11 @@
             clearPaintPress();
             if (planningState.paint.active) {
               stopPaint();
-              planningHelper.textContent = planningState.editMode
-                ? "Mode edition: cliquez/appui long pour ouvrir/fermer."
-                : "Cliquez sur un jour pour voir les créneaux.";
+              if (planningHelperMessage) {
+                planningHelperMessage.textContent = planningState.editMode
+                  ? "Mode edition: cliquez/appui long pour ouvrir/fermer."
+                  : "";
+              }
             }
           });
 
@@ -2812,7 +3120,9 @@
 
         if (isAdmin && !selectedTenantId) {
           planningState.byDate = new Map();
-          planningHelper.textContent = "Choisissez un client pour afficher le planning.";
+          if (planningHelperMessage) {
+            planningHelperMessage.textContent = "Choisissez un client pour afficher le planning.";
+          }
           renderPlanning();
           return;
         }
@@ -2873,13 +3183,65 @@
         });
       }
 
+      async function applyHoursToSelectedDay() {
+        if (!tenantFeatures.emploi_du_temps) {
+          return;
+        }
+        if (!planningHoursStart || !planningHoursEnd) {
+          return;
+        }
+
+        const dateIso = toISODateLocal(planningState.selectedDate);
+        const start = String(planningHoursStart.value || "").trim() || "08:00";
+        const end = String(planningHoursEnd.value || "").trim() || "18:00";
+
+        planningState.openDays.add(dateIso);
+        planningState.dayHours.set(dateIso, { start, end });
+
+        if (planningHelperMessage) {
+          planningHelperMessage.textContent = "Enregistrement des horaires…";
+        }
+
+        try {
+          const changes = [{ date: dateIso, open: true, start_time: start, end_time: end }];
+          const response = await fetchWithAuth(WORKING_DAYS_ENDPOINT, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ changes }),
+          });
+
+          if (!response.ok) {
+            if (planningHelperMessage) {
+              planningHelperMessage.textContent = "Impossible d'enregistrer les horaires.";
+            }
+            return;
+          }
+
+          if (planningHelperMessage) {
+            planningHelperMessage.textContent = "Horaires enregistrés.";
+          }
+          await refreshPlanning();
+        } catch (error) {
+          if (planningHelperMessage) {
+            planningHelperMessage.textContent = "Impossible d'enregistrer les horaires.";
+          }
+        }
+      }
+
+      if (planningApplyHours) {
+        planningApplyHours.addEventListener("click", applyHoursToSelectedDay);
+      }
+
       if (planningEditToggle) {
         planningEditToggle.addEventListener("click", async () => {
           if (!planningState.editMode) {
             planningState.editMode = true;
             planningState.baseOpenDays = new Set(planningState.openDays);
             planningState.pendingDayChanges = new Map();
-            planningHelper.textContent = "Mode edition: appui long + glisser pour ouvrir/fermer plusieurs jours.";
+            if (planningHelperMessage) {
+              planningHelperMessage.textContent =
+                "Mode edition: appui long + glisser pour ouvrir/fermer plusieurs jours.";
+            }
             updatePlanningEditToggleUI();
             renderPlanning();
             return;
@@ -2900,7 +3262,9 @@
 
           // No pending changes: exit edit mode
           planningState.editMode = false;
-          planningHelper.textContent = "Cliquez sur un jour pour voir les créneaux.";
+          if (planningHelperMessage) {
+            planningHelperMessage.textContent = "";
+          }
           updatePlanningEditToggleUI();
           renderPlanning();
         });

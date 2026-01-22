@@ -19,6 +19,25 @@ const normalizeDate = (value) => {
   return text;
 };
 
+const normalizeTime = (value) => {
+  const text = String(value || "").trim();
+  if (!text) {
+    return "";
+  }
+  // Accept HH:MM
+  if (!/^\d{2}:\d{2}$/.test(text)) {
+    return "";
+  }
+  const [h, m] = text.split(":").map((v) => Number(v));
+  if (!Number.isFinite(h) || !Number.isFinite(m)) {
+    return "";
+  }
+  if (h < 0 || h > 23 || m < 0 || m > 59) {
+    return "";
+  }
+  return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
+};
+
 const isSafeForILike = (value) => !/[\%_]/.test(String(value || ""));
 
 const todayIsoUtc = () => new Date().toISOString().slice(0, 10);
@@ -39,11 +58,11 @@ const cleanupPastDays = async ({ tenantId, useILike, beforeDate }) => {
   return true;
 };
 
-const listOpenDates = async ({ tenantId, startDate, endDate, useILike }) => {
+const listOpenDays = async ({ tenantId, startDate, endDate, useILike }) => {
   const supabase = getSupabaseClient();
   let query = supabase
     .from(TABLE)
-    .select("date")
+    .select("date,start_time,end_time")
     .order("date", { ascending: true });
 
   query = useILike ? query.ilike("tenant_id", tenantId) : query.eq("tenant_id", tenantId);
@@ -61,10 +80,19 @@ const listOpenDates = async ({ tenantId, startDate, endDate, useILike }) => {
     return null;
   }
 
-  const dates = (Array.isArray(data) ? data : [])
-    .map((row) => String(row?.date || "").trim())
+  const rows = (Array.isArray(data) ? data : [])
+    .map((row) => {
+      const date = String(row?.date || "").trim();
+      if (!date) {
+        return null;
+      }
+      const start_time = String(row?.start_time || "").slice(0, 5);
+      const end_time = String(row?.end_time || "").slice(0, 5);
+      return { date, start_time, end_time };
+    })
     .filter(Boolean);
-  return dates;
+
+  return rows;
 };
 
 const applyChanges = async ({ tenantId, changes, useILike }) => {
@@ -86,7 +114,9 @@ const applyChanges = async ({ tenantId, changes, useILike }) => {
     }
     const open = Boolean(change?.open);
     if (open) {
-      toOpen.push(date);
+      const start_time = normalizeTime(change?.start_time || change?.start || "");
+      const end_time = normalizeTime(change?.end_time || change?.end || "");
+      toOpen.push({ date, start_time, end_time });
     } else {
       toClose.push(date);
     }
@@ -94,7 +124,16 @@ const applyChanges = async ({ tenantId, changes, useILike }) => {
 
   // Upsert open days
   if (toOpen.length) {
-    const rows = toOpen.map((date) => ({ tenant_id: tenantId, date }));
+    const rows = toOpen.map(({ date, start_time, end_time }) => {
+      const row = { tenant_id: tenantId, date };
+      if (start_time) {
+        row.start_time = start_time;
+      }
+      if (end_time) {
+        row.end_time = end_time;
+      }
+      return row;
+    });
     const { error } = await supabase.from(TABLE).upsert(rows, {
       onConflict: "tenant_id,date",
       ignoreDuplicates: false,
@@ -172,17 +211,19 @@ exports.handler = async (event) => {
   const endDate = normalizeDate(event?.queryStringParameters?.end);
 
   if (event.httpMethod === "GET") {
-    let dates = await listOpenDates({ tenantId, startDate, endDate, useILike: false });
-    if (dates === null) {
+    let days = await listOpenDays({ tenantId, startDate, endDate, useILike: false });
+    if (days === null) {
       return buildResponse(500, { error: "db_error" });
     }
-    if (!dates.length && useILike) {
-      const fallback = await listOpenDates({ tenantId, startDate, endDate, useILike: true });
+    if (!days.length && useILike) {
+      const fallback = await listOpenDays({ tenantId, startDate, endDate, useILike: true });
       if (Array.isArray(fallback)) {
-        dates = fallback;
+        days = fallback;
       }
     }
-    return buildResponse(200, { open_dates: dates });
+
+    const open_dates = days.map((item) => item.date);
+    return buildResponse(200, { open_dates, open_days: days });
   }
 
   if (event.httpMethod === "POST") {
