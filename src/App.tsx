@@ -1,26 +1,26 @@
 import { useEffect, useState } from "react";
-import IosInstallPromptModal from "./components/IosInstallPromptModal";
+import InstallPromptModal from "./components/InstallPromptModal";
 import {
-  markIosA2hsPromptDismissed,
-  markIosA2hsPromptSeenThisSession,
-  shouldShowIosA2hsPrompt,
-} from "./pwa/iosInstallPrompt";
+  getInstallPromptVariant,
+  markInstallPromptDismissed,
+  shouldShowInstallPrompt,
+} from "./pwa/installPrompt";
 
 function App() {
   const [showInstallHelp, setShowInstallHelp] = useState(false);
 
   useEffect(() => {
-    if (shouldShowIosA2hsPrompt()) {
+    if (shouldShowInstallPrompt()) {
       setShowInstallHelp(true);
-      markIosA2hsPromptSeenThisSession();
     }
   }, []);
 
   if (showInstallHelp) {
     return (
-      <IosInstallPromptModal
+      <InstallPromptModal
+        variant={getInstallPromptVariant()}
         onContinue={() => {
-          markIosA2hsPromptDismissed();
+          markInstallPromptDismissed();
           setShowInstallHelp(false);
         }}
       />
