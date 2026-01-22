@@ -153,6 +153,10 @@ exports.handler = async (event) => {
     return buildResponse(400, { error: "missing_target_tenant" });
   }
 
+  if (auth.tenant?.features && auth.tenant.features.emploi_du_temps === false) {
+    return buildResponse(403, { error: "planning_disabled" });
+  }
+
   const tenantId = String(auth.tenant?.id || "").trim();
   if (!tenantId) {
     return buildResponse(400, { error: "missing_tenant" });

@@ -56,6 +56,7 @@ exports.handler = async (event) => {
       id: tenant.id,
       role: tenant.role || "client",
       folders: tenant.folders,
+      features: tenant.features || { image: true, emploi_du_temps: true },
     },
   });
 };

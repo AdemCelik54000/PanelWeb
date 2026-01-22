@@ -38,6 +38,7 @@ exports.handler = async (event) => {
       id: auth.tenant.id,
       role: auth.actor.role || auth.tenant.role || "client",
       folders: auth.tenant.folders,
+      features: auth.tenant.features || { image: true, emploi_du_temps: true },
     },
   });
 };

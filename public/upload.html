@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta
       name="viewport"
-      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"
     />
     <title>Web Menu</title>
     <meta name="theme-color" content="#0b1220" />
@@ -12,8 +12,7 @@
     <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-    <script src="https://widget.cloudinary.com/v2.0/global/all.js" type="text/javascript"></script>
+    <meta name="apple-mobile-web-app-status-bar-style" content="black" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
@@ -101,6 +100,19 @@
         color: #f8fafc;
         text-align: left;
         padding: 6px 4px 8px;
+      }
+
+      .header-actions {
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        gap: 10px;
+        margin-bottom: 10px;
+      }
+
+      .refresh-tag {
+        background: rgba(34, 197, 94, 0.14);
+        color: #064e3b;
       }
 
       header h1 {
@@ -343,6 +355,14 @@
         padding: 10px 10px;
         cursor: pointer;
         text-align: left;
+      }
+
+      .planning-day-btn,
+      .planning-month-day,
+      .planning-month .weekday {
+        user-select: none;
+        -webkit-user-select: none;
+        -webkit-touch-callout: none;
       }
 
       .planning-day-btn strong {
@@ -624,7 +644,9 @@
       }
 
       body.locked {
-        overflow: hidden;
+        /* iPad Safari can fail to focus/type in inputs inside fixed overlays
+           when the body is overflow:hidden. Keep scrolling disabled via the overlay itself. */
+        overflow: auto;
       }
 
       body.locked .shell {
@@ -640,6 +662,8 @@
         padding: 24px 16px;
         background: radial-gradient(circle at top, rgba(15, 23, 42, 0.85), rgba(2, 6, 23, 0.98));
         z-index: 2000;
+        touch-action: none;
+        overscroll-behavior: none;
       }
 
       .login-overlay.active {
@@ -1067,7 +1091,10 @@
     </div>
     <div class="shell">
       <header>
-        <button class="tag logout-tag" type="button" id="logoutButton">Deconnexion</button>
+        <div class="header-actions">
+          <button class="tag refresh-tag" type="button" id="refreshButton">Actualiser</button>
+          <button class="tag logout-tag" type="button" id="logoutButton">Deconnexion</button>
+        </div>
         <h1>Ajouter des photos</h1>
         <p>Sélectionnez une catégorie, puis la sous-catégorie si besoin.</p>
       </header>
@@ -1095,6 +1122,7 @@
       <section id="categoryView" class="card">
         <div class="section-title">Choisissez une catégorie</div>
         <div class="grid" id="categoryButtons"></div>
+        <div class="helper hidden" id="disabledNotice"></div>
       </section>
 
       <section id="planningView" class="card">
@@ -1196,9 +1224,17 @@
       const loginPassword = document.getElementById("loginPassword");
       const loginError = document.getElementById("loginError");
       const logoutButton = document.getElementById("logoutButton");
+      const refreshButton = document.getElementById("refreshButton");
+      const disabledNotice = document.getElementById("disabledNotice");
+      const headerTitle = document.querySelector("header h1");
+      const headerSubtitle = document.querySelector("header p");
       const adminPanel = document.getElementById("adminPanel");
       const adminTenantSelect = document.getElementById("adminTenantSelect");
       const adminHelper = document.getElementById("adminHelper");
+
+      let currentView = "category";
+      let tenantFeatures = { image: true, emploi_du_temps: true };
+      let planningRefreshScheduled = false;
 
       const globalLoadingState = {
         active: false,
@@ -1549,6 +1585,75 @@
         }
       }
 
+      function normalizeFeatures(value) {
+        const image = value?.image === false ? false : true;
+        const emploi_du_temps = value?.emploi_du_temps === false ? false : true;
+        return { image, emploi_du_temps };
+      }
+
+      function setTenantFeatures(features) {
+        tenantFeatures = normalizeFeatures(features);
+
+        if (headerTitle) {
+          if (tenantFeatures.image) {
+            headerTitle.textContent = "Ajouter des photos";
+          } else if (tenantFeatures.emploi_du_temps) {
+            headerTitle.textContent = "Emploi du temps";
+          } else {
+            headerTitle.textContent = "Accès";
+          }
+        }
+        if (headerSubtitle) {
+          if (tenantFeatures.image) {
+            headerSubtitle.textContent = "Sélectionnez une catégorie, puis la sous-catégorie si besoin.";
+          } else if (tenantFeatures.emploi_du_temps) {
+            headerSubtitle.textContent = "Consultez l'emploi du temps.";
+          } else {
+            headerSubtitle.textContent = "Fonctionnalités désactivées.";
+          }
+        }
+
+        if (disabledNotice) {
+          const show = !tenantFeatures.image && !tenantFeatures.emploi_du_temps;
+          disabledNotice.classList.toggle("hidden", !show);
+          if (show) {
+            disabledNotice.textContent = "Les fonctionnalités image et emploi du temps sont désactivées pour ce compte.";
+          } else {
+            disabledNotice.textContent = "";
+          }
+        }
+
+        showView(currentView);
+      }
+
+      function schedulePlanningRefresh() {
+        if (!tenantFeatures.emploi_du_temps) {
+          return;
+        }
+        if (!isAuthenticated) {
+          return;
+        }
+        if (planningRefreshScheduled) {
+          return;
+        }
+        planningRefreshScheduled = true;
+
+        const run = async () => {
+          planningRefreshScheduled = false;
+          try {
+            await refreshPlanning();
+          } catch (error) {
+            // ignore
+          }
+        };
+
+        if ("requestIdleCallback" in window) {
+          window.requestIdleCallback(() => run(), { timeout: 1200 });
+        } else {
+          setTimeout(() => run(), 0);
+        }
+      }
+
       function setLocked(locked) {
         document.body.classList.toggle("locked", locked);
         loginOverlay.classList.toggle("active", locked);
@@ -1656,6 +1761,7 @@
         }
         const data = await response.json();
         setAdminMode(data?.tenant?.role);
+        setTenantFeatures(data?.tenant?.features);
         state.currentCategory = null;
         state.currentFolder = null;
         state.currentLabel = null;
@@ -1668,7 +1774,7 @@
         setLocked(false);
         renderCategories();
         showView("category");
-        await refreshPlanning();
+        schedulePlanningRefresh();
       }
 
       async function authenticate(identifier, password) {
@@ -1698,6 +1804,7 @@
           setAuthToken(data.token);
           isAuthenticated = true;
           setAdminMode(data?.tenant?.role);
+          setTenantFeatures(data?.tenant?.features);
           selectedTenantId = getSelectedTenantId();
           if (isAdmin) {
             setLocked(false);
@@ -1708,14 +1815,14 @@
               categories = [];
               renderCategories();
               showView("category");
-              await refreshPlanning();
+              schedulePlanningRefresh();
             }
           } else {
             categories = Array.isArray(data?.tenant?.folders) ? data.tenant.folders : [];
             setLocked(false);
             renderCategories();
             showView("category");
-            await refreshPlanning();
+            schedulePlanningRefresh();
           }
           loginIdentifier.value = "";
         } catch (error) {
@@ -1745,6 +1852,7 @@
           const data = await tenantResponse.json();
           isAuthenticated = true;
           setAdminMode(data?.tenant?.role);
+          setTenantFeatures(data?.tenant?.features);
           selectedTenantId = getSelectedTenantId();
           if (isAdmin) {
             setLocked(false);
@@ -1762,7 +1870,7 @@
           setLocked(false);
           renderCategories();
           showView("category");
-          await refreshPlanning();
+          schedulePlanningRefresh();
           return;
         } catch (error) {
           handleAuthError("Session expiree.");
@@ -2596,6 +2704,10 @@
           return;
         }
 
+        if (!tenantFeatures.emploi_du_temps) {
+          return;
+        }
+
         if (isAdmin && !selectedTenantId) {
           planningState.byDate = new Map();
           planningHelper.textContent = "Choisissez un client pour afficher le planning.";
@@ -2711,21 +2823,116 @@
       }
 
       function showView(view) {
-        categoryView.classList.toggle("hidden", view !== "category");
+        currentView = view;
+
+        const imagesEnabled = tenantFeatures.image !== false;
+        const planningEnabled = tenantFeatures.emploi_du_temps !== false;
+
+        categoryView.classList.toggle("hidden", view !== "category" || !imagesEnabled);
         if (planningView) {
-          planningView.classList.toggle("hidden", view !== "category");
+          planningView.classList.toggle("hidden", view !== "category" || !planningEnabled);
         }
-        subcategoryView.classList.toggle("hidden", view !== "subcategory");
+        subcategoryView.classList.toggle("hidden", view !== "subcategory" || !imagesEnabled);
         const inUpload = view === "upload";
-        uploadView.classList.toggle("hidden", !inUpload);
-        orderView.classList.toggle("hidden", !inUpload);
+        uploadView.classList.toggle("hidden", !inUpload || !imagesEnabled);
+        orderView.classList.toggle("hidden", !inUpload || !imagesEnabled);
         orderView.style.display = inUpload ? "" : "none";
-        saveOrderButton.classList.toggle("hidden", !inUpload || state.selectMode);
-        selectionActions.classList.toggle("hidden", !inUpload || !state.selectMode);
-        selectModeButton.classList.toggle("hidden", !inUpload);
+        saveOrderButton.classList.toggle("hidden", !inUpload || !imagesEnabled || state.selectMode);
+        selectionActions.classList.toggle(
+          "hidden",
+          !inUpload || !imagesEnabled || !state.selectMode
+        );
+        selectModeButton.classList.toggle("hidden", !inUpload || !imagesEnabled);
         logoutButton.classList.toggle("hidden", view !== "category");
         if (adminPanel) {
           adminPanel.classList.toggle("hidden", !isAdmin || view !== "category");
+        }
+      }
+
+      function findFolderInCategories(folderKey) {
+        const key = String(folderKey || "").trim();
+        if (!key) {
+          return null;
+        }
+        for (const category of categories) {
+          if (category?.folder === key) {
+            return { label: category.label, folder: key };
+          }
+          const subs = Array.isArray(category?.subcategories) ? category.subcategories : [];
+          for (const sub of subs) {
+            if (sub?.folder === key) {
+              return { label: `${category.label} / ${sub.label}`, folder: key };
+            }
+          }
+        }
+        return null;
+      }
+
+      async function refreshAllData() {
+        if (!refreshButton) {
+          return;
+        }
+        if (!getAuthToken()) {
+          await bootstrapAuth();
+          return;
+        }
+        if (!isAuthenticated) {
+          await bootstrapAuth();
+          return;
+        }
+
+        const prevView = currentView;
+        const prevCategoryId = state.currentCategory?.id || null;
+        const prevFolder = state.currentFolder || "";
+
+        refreshButton.disabled = true;
+        const previousText = refreshButton.textContent;
+        refreshButton.textContent = "Actualisation…";
+
+        try {
+          if (isAdmin) {
+            await loadTenantOptions();
+          }
+
+          if (!selectedTenantId && isAdmin) {
+            categories = [];
+            renderCategories();
+            showView("category");
+            schedulePlanningRefresh();
+            return;
+          }
+
+          const response = await fetchWithAuth(TENANT_CONFIG_ENDPOINT);
+          if (!response.ok) {
+            handleAuthError("Session expiree.");
+            return;
+          }
+          const data = await response.json();
+          setAdminMode(data?.tenant?.role);
+          setTenantFeatures(data?.tenant?.features);
+          categories = Array.isArray(data?.tenant?.folders) ? data.tenant.folders : [];
+          renderCategories();
+
+          if (tenantFeatures.image && prevView === "upload" && prevFolder) {
+            const match = findFolderInCategories(prevFolder);
+            if (match) {
+              selectUploadTarget(match.label, match.folder);
+              schedulePlanningRefresh();
+              return;
+            }
+          }
+
+          if (tenantFeatures.image && prevView === "subcategory" && prevCategoryId) {
+            selectCategory(prevCategoryId);
+            schedulePlanningRefresh();
+            return;
+          }
+
+          showView("category");
+          schedulePlanningRefresh();
+        } finally {
+          refreshButton.disabled = false;
+          refreshButton.textContent = previousText;
         }
       }
 
@@ -3648,6 +3855,10 @@
       downloadSelectedButton.addEventListener("click", downloadSelectedAssets);
       logoutButton.addEventListener("click", logout);
 
+      refreshButton?.addEventListener("click", () => {
+        refreshAllData();
+      });
+
       orderGrid.addEventListener("pointerdown", handlePointerDown);
       orderGrid.addEventListener("pointermove", handlePointerMove);
       orderGrid.addEventListener("pointerup", handlePointerUp);
@@ -3692,6 +3903,16 @@
         }
         if (!isAuthenticated) {
           bootstrapAuth();
+        }
+      });
+
+      window.addEventListener("visibilitychange", () => {
+        if (document.hidden) {
+          try {
+            clearDragState();
+          } catch (error) {
+            // ignore
+          }
         }
       });
     </script>

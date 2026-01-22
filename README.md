@@ -40,3 +40,12 @@ URLs:
 
 - En local, **l’upload Cloudinary** utilise maintenant `cloud_name` + `upload_preset` retournés par `/.netlify/functions/sign-upload`, donc tu peux switcher de compte juste en changeant les variables dans `.env`.
 - Ne mets jamais les secrets dans le repo (le fichier `.env` est ignoré par git).
+
+## Feature flags (table `tenants`)
+
+Deux colonnes booléennes permettent d’activer/désactiver des fonctionnalités côté panel:
+
+- `image` : active/désactive les fonctionnalités liées aux images (upload, listing, suppression, ordre)
+- `emploi_du_temps` : active/désactive l’affichage + l’édition de l’emploi du temps
+
+Migration SQL: `supabase/migrations/20260122_add_tenants_feature_flags.sql`

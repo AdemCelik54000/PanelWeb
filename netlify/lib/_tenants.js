@@ -44,17 +44,38 @@ const flattenFolders = (folders) => {
 
 const loadTenantRecord = async (tenantId) => {
   const supabase = getSupabaseClient();
-  const { data, error } = await supabase
-    .from("tenants")
-    .select("id, folder_root, password_salt, password_hash, role")
-    .eq("id", tenantId)
-    .maybeSingle();
-  if (error) {
-    console.error("Supabase tenant fetch error", { error, tenantId });
+  const selectWithFlags = "id, folder_root, password_salt, password_hash, role, image, emploi_du_temps";
+  const selectLegacy = "id, folder_root, password_salt, password_hash, role";
+
+  const attemptSelect = async (select) => {
+    const { data, error } = await supabase
+      .from("tenants")
+      .select(select)
+      .eq("id", tenantId)
+      .maybeSingle();
+    return { data, error };
+  };
+
+  let result = await attemptSelect(selectWithFlags);
+  if (result.error) {
+    const message = String(result.error?.message || "");
+    const likelyMissingColumns =
+      message.includes("emploi_du_temps") ||
+      message.includes("image") ||
+      message.includes("column") ||
+      message.includes("PGRST");
+    if (likelyMissingColumns) {
+      result = await attemptSelect(selectLegacy);
+    }
+  }
+
+  if (result.error) {
+    console.error("Supabase tenant fetch error", { error: result.error, tenantId });
     return null;
   }
-  if (data) {
-    return data;
+
+  if (result.data) {
+    return result.data;
   }
 
   const safeForILike = !/[\%_]/.test(String(tenantId || ""));
@@ -62,11 +83,27 @@ const loadTenantRecord = async (tenantId) => {
     return null;
   }
 
-  const fallback = await supabase
-    .from("tenants")
-    .select("id, folder_root, password_salt, password_hash, role")
-    .ilike("id", tenantId)
-    .maybeSingle();
+  const attemptFallback = async (select) => {
+    const fallback = await supabase
+      .from("tenants")
+      .select(select)
+      .ilike("id", tenantId)
+      .maybeSingle();
+    return fallback;
+  };
+
+  let fallback = await attemptFallback(selectWithFlags);
+  if (fallback.error) {
+    const message = String(fallback.error?.message || "");
+    const likelyMissingColumns =
+      message.includes("emploi_du_temps") ||
+      message.includes("image") ||
+      message.includes("column") ||
+      message.includes("PGRST");
+    if (likelyMissingColumns) {
+      fallback = await attemptFallback(selectLegacy);
+    }
+  }
   if (fallback.error) {
     console.error("Supabase tenant fetch error", { error: fallback.error, tenantId });
     return null;
@@ -189,6 +226,9 @@ const getTenantById = async (id) => {
   const folderRoot = toSafeTenantFolder(folderRootSource);
   const role = tenantRow.role ? String(tenantRow.role) : "client";
 
+  const imageEnabled = tenantRow.image === undefined ? true : Boolean(tenantRow.image);
+  const planningEnabled = tenantRow.emploi_du_temps === undefined ? true : Boolean(tenantRow.emploi_du_temps);
+
   return {
     id: tenantRow.id,
     normalizedId,
@@ -198,22 +238,52 @@ const getTenantById = async (id) => {
     allowedFolders,
     folderRoot,
     role,
+    features: {
+      image: imageEnabled,
+      emploi_du_temps: planningEnabled,
+    },
   };
 };
 
 const listTenants = async () => {
   const supabase = getSupabaseClient();
-  const { data, error } = await supabase
-    .from("tenants")
-    .select("id, role")
-    .order("id", { ascending: true });
-  if (error) {
-    console.error("Supabase tenants list error", { error });
+  const selectWithFlags = "id, role, image, emploi_du_temps";
+  const selectLegacy = "id, role";
+
+  const attemptSelect = async (select) => {
+    const { data, error } = await supabase
+      .from("tenants")
+      .select(select)
+      .order("id", { ascending: true });
+    return { data, error };
+  };
+
+  let result = await attemptSelect(selectWithFlags);
+  if (result.error) {
+    const message = String(result.error?.message || "");
+    const likelyMissingColumns =
+      message.includes("emploi_du_temps") ||
+      message.includes("image") ||
+      message.includes("column") ||
+      message.includes("PGRST");
+    if (likelyMissingColumns) {
+      result = await attemptSelect(selectLegacy);
+    }
+  }
+
+  if (result.error) {
+    console.error("Supabase tenants list error", { error: result.error });
     return [];
   }
-  return (Array.isArray(data) ? data : []).map((tenant) => ({
+
+  return (Array.isArray(result.data) ? result.data : []).map((tenant) => ({
     id: tenant.id,
     role: tenant.role ? String(tenant.role) : "client",
+    features: {
+      image: tenant.image === undefined ? true : Boolean(tenant.image),
+      emploi_du_temps:
+        tenant.emploi_du_temps === undefined ? true : Boolean(tenant.emploi_du_temps),
+    },
   }));
 };
 

@@ -27,6 +27,10 @@ exports.handler = async (event) => {
     return buildResponse(400, { error: "missing_target_tenant" });
   }
 
+  if (auth.tenant?.features && auth.tenant.features.image === false) {
+    return buildResponse(403, { error: "image_disabled" });
+  }
+
   const folderKey = event?.queryStringParameters?.folder;
   if (!isAllowedFolder(auth.tenant, folderKey)) {
     return buildResponse(400, { error: "invalid_folder" });

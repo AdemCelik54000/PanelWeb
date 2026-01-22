@@ -42,6 +42,10 @@ exports.handler = async (event) => {
     return buildResponse(400, { error: "missing_target_tenant" });
   }
 
+  if (auth.tenant?.features && auth.tenant.features.image === false) {
+    return buildResponse(403, { error: "image_disabled" });
+  }
+
   let payload = null;
   try {
     payload = JSON.parse(event.body || "{}");
