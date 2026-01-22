@@ -1,4 +1,32 @@
+import { useEffect, useState } from "react";
+import IosInstallPromptModal from "./components/IosInstallPromptModal";
+import {
+  markIosA2hsPromptDismissed,
+  markIosA2hsPromptSeenThisSession,
+  shouldShowIosA2hsPrompt,
+} from "./pwa/iosInstallPrompt";
+
 function App() {
+  const [showInstallHelp, setShowInstallHelp] = useState(false);
+
+  useEffect(() => {
+    if (shouldShowIosA2hsPrompt()) {
+      setShowInstallHelp(true);
+      markIosA2hsPromptSeenThisSession();
+    }
+  }, []);
+
+  if (showInstallHelp) {
+    return (
+      <IosInstallPromptModal
+        onContinue={() => {
+          markIosA2hsPromptDismissed();
+          setShowInstallHelp(false);
+        }}
+      />
+    );
+  }
+
   return (
     <div className="bg-slate-950" style={{ height: "100svh" }}>
       <p
