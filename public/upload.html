@@ -3667,7 +3667,7 @@
 
       async function saveOrderPayload(items) {
         if (!items.length) {
-          return false;
+          return { ok: false, error: "missing_items" };
         }
         try {
           const response = await fetchWithAuth(SAVE_ORDER_ENDPOINT, {
@@ -3675,9 +3675,20 @@
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ items }),
           });
-          return response.ok;
+
+          if (response.ok) {
+            return { ok: true };
+          }
+
+          const bodyText = await response.text().catch(() => "");
+          return {
+            ok: false,
+            status: response.status,
+            statusText: response.statusText,
+            body: bodyText,
+          };
         } catch (error) {
-          return false;
+          return { ok: false, error: String(error) };
         }
       }
 
@@ -3707,17 +3718,29 @@
           };
         });
 
-        let success = false;
+        let result = null;
         try {
-          success = await saveOrderPayload(payload);
+          result = await saveOrderPayload(payload);
         } finally {
           clearGlobalLoading();
           saveOrderButton.disabled = false;
           saveOrderButton.textContent = "ENREGISTRER L'ORDRE";
         }
 
-        if (!success) {
-          orderStatus.textContent = "Erreur lors de l'enregistrement.";
+        if (!result?.ok) {
+          const details = [];
+          if (result?.status) {
+            details.push(`HTTP ${result.status}`);
+          }
+          if (result?.body) {
+            details.push(result.body);
+          }
+          if (result?.error) {
+            details.push(result.error);
+          }
+          orderStatus.textContent = details.length
+            ? `Erreur lors de l'enregistrement. ${details.join(" • ")}`
+            : "Erreur lors de l'enregistrement.";
           return;
         }
 

@@ -69,21 +69,33 @@ exports.handler = async (event) => {
 
   const cloudAuth = Buffer.from(`${apiKey}:${apiSecret}`).toString("base64");
   const tenantPrefix = `${auth.tenant.folderRoot}/`;
+  const tenantPrefixLower = tenantPrefix.toLowerCase();
   try {
     for (const item of items) {
       const publicId = item?.public_id;
       const resourceType = item?.resource_type === "video" ? "video" : "image";
       const position = toValidPosition(item?.position);
       if (!publicId || !position) {
-        return buildResponse(400, { error: "invalid_item" });
+        return buildResponse(400, {
+          error: "invalid_item",
+          reason: "missing_public_id_or_position",
+          public_id: publicId || null,
+          position: item?.position ?? null,
+        });
       }
-      if (!String(publicId).startsWith(tenantPrefix)) {
-        return buildResponse(400, { error: "invalid_item" });
+      const publicIdText = String(publicId);
+      if (!publicIdText.toLowerCase().startsWith(tenantPrefixLower)) {
+        return buildResponse(400, {
+          error: "invalid_item",
+          reason: "public_id_outside_tenant_prefix",
+          tenantPrefix,
+          public_id: publicIdText,
+        });
       }
 
-      const url = `https://api.cloudinary.com/v1_1/${cloudName}/resources/${resourceType}/upload/${encodeURIComponent(
-        publicId
-      )}`;
+      // Cloudinary expects foldered public IDs with slashes in the path.
+      // encodeURIComponent would escape '/' and can cause 404s. Use encodeURI.
+      const url = `https://api.cloudinary.com/v1_1/${cloudName}/resources/${resourceType}/upload/${encodeURI(publicId)}`;
       const body = new URLSearchParams();
       body.append("context", `position=${position}`);
 

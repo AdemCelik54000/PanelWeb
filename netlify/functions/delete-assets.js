@@ -61,11 +61,12 @@ exports.handler = async (event) => {
 
   const cloudAuth = Buffer.from(`${apiKey}:${apiSecret}`).toString("base64");
   const tenantPrefix = `${auth.tenant.folderRoot}/`;
+  const tenantPrefixLower = tenantPrefix.toLowerCase();
   const validatedItems = items.filter((item) => {
     if (!item?.public_id) {
       return false;
     }
-    return String(item.public_id).startsWith(tenantPrefix);
+    return String(item.public_id).toLowerCase().startsWith(tenantPrefixLower);
   });
   if (validatedItems.length !== items.length) {
     return buildResponse(400, { error: "invalid_item" });
