@@ -3458,18 +3458,53 @@
       }
 
       function detectManualOrder(items) {
-        return items.length > 0 && items.every((item) => Number.isFinite(item.position));
+        // Some tenants may have older assets without the `position` context.
+        // If at least one item has a numeric position, treat the folder as manually ordered.
+        return items.length > 0 && items.some((item) => Number.isFinite(item.position));
       }
 
       function sortImages(items) {
         if (state.hasManualOrder) {
           return items
             .slice()
-            .sort((a, b) => (a.position || 0) - (b.position || 0));
+            .sort((a, b) => {
+              const ap = Number.isFinite(a.position) ? a.position : Number.POSITIVE_INFINITY;
+              const bp = Number.isFinite(b.position) ? b.position : Number.POSITIVE_INFINITY;
+              if (ap !== bp) return ap - bp;
+              return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+            });
         }
         return items
           .slice()
           .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+      }
+
+      async function persistMissingPositionsIfNeeded(images) {
+        const list = Array.isArray(images) ? images : [];
+        const withPos = list.filter((img) => Number.isFinite(img.position));
+        const missing = list.filter((img) => !Number.isFinite(img.position));
+        if (!withPos.length || !missing.length) {
+          return;
+        }
+
+        const maxPos = withPos.reduce((max, img) => (img.position > max ? img.position : max), 0);
+        let nextPos = maxPos;
+        const payload = missing.map((img) => {
+          nextPos += 1;
+          img.position = nextPos;
+          return {
+            public_id: img.public_id,
+            position: nextPos,
+            resource_type: img.kind === "video" ? "video" : "image",
+          };
+        });
+
+        // Best-effort background persistence; don't block the UI.
+        try {
+          await saveOrderPayload(payload);
+        } catch (error) {
+          // ignore
+        }
       }
 
       function updateOrderIndexes() {
@@ -3612,6 +3647,10 @@
           }));
 
           state.hasManualOrder = detectManualOrder(normalized);
+          // If some items have positions but others don't, assign the missing ones to the end and persist.
+          if (state.hasManualOrder) {
+            await persistMissingPositionsIfNeeded(normalized);
+          }
           state.images = sortImages(normalized);
           renderOrderGrid();
           orderStatus.textContent = "";
