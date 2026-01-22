@@ -110,9 +110,34 @@
         margin-bottom: 10px;
       }
 
-      .refresh-tag {
-        background: rgba(34, 197, 94, 0.14);
-        color: #064e3b;
+      .icon-btn {
+        width: 36px;
+        height: 36px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 10px;
+        border: 1px solid rgba(15, 23, 42, 0.2);
+        background: #ffffff;
+        color: #0f172a;
+        cursor: pointer;
+        padding: 0;
+        line-height: 1;
+      }
+
+      .icon-btn:active {
+        transform: scale(0.98);
+      }
+
+      .icon-btn svg {
+        width: 18px;
+        height: 18px;
+        display: block;
+      }
+
+      .icon-btn[disabled] {
+        opacity: 0.6;
+        cursor: not-allowed;
       }
 
       header h1 {
@@ -174,7 +199,7 @@
       @media (max-width: 380px) {
         body {
           padding-left: 12px;
-          padding-right: 12px;
+          grid-template-columns: 1fr 1fr 44px 44px 44px;
         }
 
         header h1 {
@@ -270,10 +295,16 @@
       }
 
       .planning-header {
-        display: flex;
+        display: grid;
+        grid-template-columns: 1fr auto;
+        grid-template-rows: auto auto;
+        gap: 10px 12px;
         align-items: center;
-        justify-content: space-between;
-        gap: 12px;
+      }
+
+      /* Make the controls sit on a second row by default (prevents wrapping chaos on small screens). */
+      .planning-controls {
+        grid-column: 1 / -1;
       }
 
       .planning-controls {
@@ -282,6 +313,12 @@
         gap: 8px;
         flex-wrap: wrap;
         justify-content: flex-end;
+      }
+
+      #planningEditToggle {
+        justify-self: end;
+        align-self: center;
+        white-space: nowrap;
       }
 
       .mini-btn {
@@ -500,20 +537,20 @@
 
       @media (max-width: 520px) {
         .planning-header {
-          flex-direction: column;
-          align-items: flex-start;
+          grid-template-columns: 1fr auto;
+          grid-template-rows: auto auto;
         }
 
         .planning-controls {
           width: 100%;
           display: grid;
-          grid-template-columns: 1fr 1fr auto auto;
+          grid-template-columns: 1fr 1fr 44px 44px 44px;
           grid-template-rows: auto auto;
           gap: 8px;
           justify-content: stretch;
         }
 
-        #planningModeWeek {
+        #planningEditToggle {
           grid-column: 1;
           grid-row: 1;
         }
@@ -533,12 +570,30 @@
           grid-row: 1;
         }
 
+        #planningRefreshButton {
+          grid-column: 5;
+          grid-row: 1;
+        }
+
         #planningRange {
           grid-column: 1 / -1;
           grid-row: 2;
           text-align: left;
           padding: 2px 0 0;
           min-width: auto;
+        }
+
+        /* Keep all mini buttons the same height and prevent weird baseline misalignment */
+        .mini-btn {
+          height: 36px;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+        }
+
+        /* Ensure the edit toggle does not break the grid */
+        #planningEditToggle {
+          height: 36px;
         }
 
         .mini-btn {
@@ -620,6 +675,8 @@
       .logout-tag {
         border: none;
         cursor: pointer;
+        background: #ef4444;
+        color: #ffffff;
       }
 
       .path-box {
@@ -1092,7 +1149,6 @@
     <div class="shell">
       <header>
         <div class="header-actions">
-          <button class="tag refresh-tag" type="button" id="refreshButton">Actualiser</button>
           <button class="tag logout-tag" type="button" id="logoutButton">Deconnexion</button>
         </div>
         <h1>Ajouter des photos</h1>
@@ -1128,11 +1184,25 @@
       <section id="planningView" class="card">
         <div class="planning-header">
           <div class="section-title">Emploi du temps</div>
-          <button class="mini-btn" type="button" id="planningEditToggle">Activer jours</button>
           <div class="planning-controls">
+            <button class="mini-btn" type="button" id="planningEditToggle">Activer jours</button>
             <button class="mini-btn" type="button" id="planningModeMonth">Mois</button>
             <button class="mini-btn" type="button" id="planningPrev">←</button>
             <button class="mini-btn" type="button" id="planningNext">→</button>
+            <button
+              class="icon-btn hidden"
+              type="button"
+              id="planningRefreshButton"
+              title="Actualiser l'emploi du temps"
+              aria-label="Actualiser l'emploi du temps"
+            >
+              <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                <path
+                  fill="currentColor"
+                  d="M12 6V3L8 7l4 4V8c2.76 0 5 2.24 5 5a5 5 0 0 1-8.66 3.54l-1.42 1.42A7 7 0 0 0 19 13c0-3.87-3.13-7-7-7Zm-5 7a5 5 0 0 1 8.66-3.54l1.42-1.42A7 7 0 0 0 5 11c0 3.87 3.13 7 7 7v3l4-4-4-4v3c-2.76 0-5-2.24-5-5Z"
+                />
+              </svg>
+            </button>
             <div class="planning-range" id="planningRange"></div>
           </div>
         </div>
@@ -1224,7 +1294,6 @@
       const loginPassword = document.getElementById("loginPassword");
       const loginError = document.getElementById("loginError");
       const logoutButton = document.getElementById("logoutButton");
-      const refreshButton = document.getElementById("refreshButton");
       const disabledNotice = document.getElementById("disabledNotice");
       const headerTitle = document.querySelector("header h1");
       const headerSubtitle = document.querySelector("header p");
@@ -1530,15 +1599,40 @@
       }
 
       function getAuthToken() {
-        return sessionStorage.getItem(AUTH_STORAGE_KEY);
+        // Persist login on the same device across browser/app restarts.
+        // Migrate legacy sessions (sessionStorage) to localStorage once.
+        const legacy = sessionStorage.getItem(AUTH_STORAGE_KEY);
+        if (legacy) {
+          try {
+            localStorage.setItem(AUTH_STORAGE_KEY, legacy);
+          } catch (error) {
+            // ignore storage errors
+          }
+          try {
+            sessionStorage.removeItem(AUTH_STORAGE_KEY);
+          } catch (error) {
+            // ignore storage errors
+          }
+          return legacy;
+        }
+        return localStorage.getItem(AUTH_STORAGE_KEY);
       }
 
       function setAuthToken(token) {
-        sessionStorage.setItem(AUTH_STORAGE_KEY, token);
+        localStorage.setItem(AUTH_STORAGE_KEY, token);
       }
 
       function clearAuthToken() {
-        sessionStorage.removeItem(AUTH_STORAGE_KEY);
+        try {
+          localStorage.removeItem(AUTH_STORAGE_KEY);
+        } catch (error) {
+          // ignore
+        }
+        try {
+          sessionStorage.removeItem(AUTH_STORAGE_KEY);
+        } catch (error) {
+          // ignore
+        }
       }
 
       function getSelectedTenantId() {
@@ -1593,6 +1687,13 @@
 
       function setTenantFeatures(features) {
         tenantFeatures = normalizeFeatures(features);
+
+        const planningRefreshButton = document.getElementById("planningRefreshButton");
+        if (planningRefreshButton) {
+          const showPlanningRefresh = tenantFeatures.emploi_du_temps;
+          planningRefreshButton.classList.toggle("hidden", !showPlanningRefresh);
+          planningRefreshButton.disabled = !showPlanningRefresh;
+        }
 
         if (headerTitle) {
           if (tenantFeatures.image) {
@@ -1967,6 +2068,7 @@
       const planningNext = document.getElementById("planningNext");
       const planningModeMonth = document.getElementById("planningModeMonth");
       const planningEditToggle = document.getElementById("planningEditToggle");
+      const planningRefreshButton = document.getElementById("planningRefreshButton");
 
       const planningState = {
         mode: "month",
@@ -2765,6 +2867,12 @@
         });
       }
 
+      if (planningRefreshButton) {
+        planningRefreshButton.addEventListener("click", async () => {
+          await refreshPlanning();
+        });
+      }
+
       if (planningEditToggle) {
         planningEditToggle.addEventListener("click", async () => {
           if (!planningState.editMode) {
@@ -2869,71 +2977,13 @@
       }
 
       async function refreshAllData() {
-        if (!refreshButton) {
+        if (!tenantFeatures.emploi_du_temps) {
           return;
         }
-        if (!getAuthToken()) {
+        if (!getAuthToken() || !isAuthenticated) {
           await bootstrapAuth();
-          return;
         }
-        if (!isAuthenticated) {
-          await bootstrapAuth();
-          return;
-        }
-
-        const prevView = currentView;
-        const prevCategoryId = state.currentCategory?.id || null;
-        const prevFolder = state.currentFolder || "";
-
-        refreshButton.disabled = true;
-        const previousText = refreshButton.textContent;
-        refreshButton.textContent = "Actualisation…";
-
-        try {
-          if (isAdmin) {
-            await loadTenantOptions();
-          }
-
-          if (!selectedTenantId && isAdmin) {
-            categories = [];
-            renderCategories();
-            showView("category");
-            schedulePlanningRefresh();
-            return;
-          }
-
-          const response = await fetchWithAuth(TENANT_CONFIG_ENDPOINT);
-          if (!response.ok) {
-            handleAuthError("Session expiree.");
-            return;
-          }
-          const data = await response.json();
-          setAdminMode(data?.tenant?.role);
-          setTenantFeatures(data?.tenant?.features);
-          categories = Array.isArray(data?.tenant?.folders) ? data.tenant.folders : [];
-          renderCategories();
-
-          if (tenantFeatures.image && prevView === "upload" && prevFolder) {
-            const match = findFolderInCategories(prevFolder);
-            if (match) {
-              selectUploadTarget(match.label, match.folder);
-              schedulePlanningRefresh();
-              return;
-            }
-          }
-
-          if (tenantFeatures.image && prevView === "subcategory" && prevCategoryId) {
-            selectCategory(prevCategoryId);
-            schedulePlanningRefresh();
-            return;
-          }
-
-          showView("category");
-          schedulePlanningRefresh();
-        } finally {
-          refreshButton.disabled = false;
-          refreshButton.textContent = previousText;
-        }
+        await refreshPlanning();
       }
 
       function selectCategory(categoryId) {
@@ -3854,10 +3904,6 @@
       deleteSelectedButton.addEventListener("click", deleteSelectedAssets);
       downloadSelectedButton.addEventListener("click", downloadSelectedAssets);
       logoutButton.addEventListener("click", logout);
-
-      refreshButton?.addEventListener("click", () => {
-        refreshAllData();
-      });
 
       orderGrid.addEventListener("pointerdown", handlePointerDown);
       orderGrid.addEventListener("pointermove", handlePointerMove);
