@@ -2,6 +2,7 @@
 <html lang="fr">
   <head>
     <meta charset="UTF-8" />
+    <link rel="icon" type="image/png" href="/Abe-infologo.png" />
     <meta
       name="viewport"
       content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"
@@ -9,7 +10,7 @@
     <title>Web Menu</title>
     <meta name="theme-color" content="#0b1220" />
     <link rel="manifest" href="/manifest.webmanifest" />
-    <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
+    <link rel="apple-touch-icon" href="/Abe-infologo.png" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black" />
@@ -1256,12 +1257,12 @@
         <div class="header-actions">
           <button class="tag logout-tag" type="button" id="logoutButton">Deconnexion</button>
         </div>
-        <h1>Ajouter des photos</h1>
-        <p>Sélectionnez une catégorie, puis la sous-catégorie si besoin.</p>
+        <h1>Abe-info</h1>
+        <p class="hidden"></p>
       </header>
 
       <section id="adminPanel" class="card admin-card hidden">
-        <div class="section-title">Choisir un client</div>
+        <div class="section-title">Abe-info</div>
         <select id="adminTenantSelect" class="admin-select">
           <option value="">Selectionner un client</option>
         </select>
@@ -1281,7 +1282,7 @@
       </div>
 
       <section id="categoryView" class="card">
-        <div class="section-title">Choisissez une catégorie</div>
+        <div class="section-title">Ajouter photo</div>
         <div class="grid" id="categoryButtons"></div>
         <div class="helper hidden" id="disabledNotice"></div>
       </section>
@@ -1341,7 +1342,7 @@
         <button class="btn btn-back" type="button" id="backToSubcategories">
           ← Retour
         </button>
-        <div class="section-title" id="uploadTitle">Ajouter des photos</div>
+        <div class="section-title" id="uploadTitle">Ajouter photo</div>
         <div class="path-box" id="selectedPath"></div>
         <button class="btn btn-upload" type="button" id="uploadButton">
           Ajouter une photo
@@ -1878,7 +1879,7 @@
 
         if (headerTitle) {
           if (tenantFeatures.image) {
-            headerTitle.textContent = "Ajouter des photos";
+            headerTitle.textContent = "Abe-info";
           } else if (tenantFeatures.emploi_du_temps) {
             headerTitle.textContent = "Emploi du temps";
           } else {
@@ -1887,11 +1888,14 @@
         }
         if (headerSubtitle) {
           if (tenantFeatures.image) {
-            headerSubtitle.textContent = "Sélectionnez une catégorie, puis la sous-catégorie si besoin.";
+            headerSubtitle.textContent = "";
+            headerSubtitle.classList.add("hidden");
           } else if (tenantFeatures.emploi_du_temps) {
             headerSubtitle.textContent = "Consultez l'emploi du temps.";
+            headerSubtitle.classList.remove("hidden");
           } else {
             headerSubtitle.textContent = "Fonctionnalités désactivées.";
+            headerSubtitle.classList.remove("hidden");
           }
         }
 
