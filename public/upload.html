@@ -318,6 +318,76 @@
         justify-content: flex-end;
       }
 
+      .planning-menu {
+        position: relative;
+        display: inline-flex;
+        align-items: center;
+      }
+
+      .planning-menu-panel {
+        position: absolute;
+        right: 0;
+        top: calc(100% + 8px);
+        width: min(340px, 86vw);
+        background: #ffffff;
+        border: 1px solid rgba(15, 23, 42, 0.14);
+        border-radius: 14px;
+        box-shadow: 0 18px 44px rgba(2, 6, 23, 0.28);
+        padding: 10px;
+        z-index: 40;
+      }
+
+      .planning-menu-item {
+        width: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        border: 1px solid rgba(15, 23, 42, 0.14);
+        background: #ffffff;
+        color: #0f172a;
+        padding: 10px 10px;
+        border-radius: 12px;
+        cursor: pointer;
+        font-weight: 800;
+        font-size: 13px;
+        line-height: 1.1;
+        text-align: left;
+      }
+
+      .planning-menu-item:hover {
+        background: rgba(15, 23, 42, 0.04);
+      }
+
+      .planning-menu-item:active {
+        transform: scale(0.99);
+      }
+
+      .planning-menu-item[disabled] {
+        opacity: 0.55;
+        cursor: not-allowed;
+      }
+
+      .planning-menu-item.danger {
+        background: linear-gradient(135deg, #dc2626, #ef4444);
+        color: #ffffff;
+        border-color: rgba(239, 68, 68, 0.55);
+      }
+
+      .planning-menu-divider {
+        height: 1px;
+        background: rgba(15, 23, 42, 0.10);
+        margin: 10px 4px;
+      }
+
+      .planning-menu-subpanel {
+        margin-top: 8px;
+        padding: 10px;
+        border: 1px dashed rgba(15, 23, 42, 0.18);
+        border-radius: 12px;
+        background: rgba(248, 250, 252, 0.82);
+      }
+
       #planningEditToggle {
         justify-self: end;
         align-self: center;
@@ -1416,7 +1486,10 @@
         <div class="planning-header">
           <div class="section-title">Emploi du temps</div>
           <div class="planning-controls">
-            <button class="mini-btn" type="button" id="planningEditToggle">Activer jours</button>
+            <button class="mini-btn hidden" type="button" id="planningEditToggle">Activer jours</button>
+            <button class="mini-btn danger hidden" type="button" id="planningSaveDaysHeaderButton">
+              Sauvegarder les jours
+            </button>
             <button class="mini-btn" type="button" id="planningModeMonth">Mois</button>
             <button class="mini-btn" type="button" id="planningPrev">←</button>
             <button class="mini-btn" type="button" id="planningNext">→</button>
@@ -1430,27 +1503,55 @@
               <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                 <path
                   fill="currentColor"
-                  d="M12 6V3L8 7l4 4V8c2.76 0 5 2.24 5 5a5 5 0 0 1-8.66 3.54l-1.42 1.42A7 7 0 0 0 19 13c0-3.87-3.13-7-7-7Zm-5 7a5 5 0 0 1 8.66-3.54l1.42-1.42A7 7 0 0 0 5 11c0 3.87 3.13 7 7 7v3l4-4-4-4v3c-2.76 0-5-2.24-5-5Z"
+                  d="M17.65 6.35A7.95 7.95 0 0 0 12 4V1L7 6l5 5V7a6 6 0 1 1-6 6H4a8 8 0 1 0 13.65-6.65Z"
                 />
               </svg>
             </button>
+            <div class="planning-menu" id="planningOverflowWrap">
+              <button
+                class="icon-btn"
+                type="button"
+                id="planningOverflowButton"
+                aria-haspopup="menu"
+                aria-expanded="false"
+                title="Options"
+                aria-label="Options"
+              >
+                <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                  <path
+                    fill="currentColor"
+                    d="M12 7.2a1.8 1.8 0 1 0 0-3.6 1.8 1.8 0 0 0 0 3.6Zm0 6.6a1.8 1.8 0 1 0 0-3.6 1.8 1.8 0 0 0 0 3.6Zm0 6.6a1.8 1.8 0 1 0 0-3.6 1.8 1.8 0 0 0 0 3.6Z"
+                  />
+                </svg>
+              </button>
+              <div class="planning-menu-panel hidden" id="planningOverflowPanel" role="menu" aria-label="Options emploi du temps">
+                <button class="planning-menu-item" type="button" id="planningMenuToggleEdit" role="menuitem">
+                  Activer le jour
+                </button>
+                <button class="planning-menu-item" type="button" id="planningMenuToggleHours" role="menuitem">
+                  Changer l’heure du jour
+                </button>
+                <div class="planning-menu-subpanel hidden" id="planningHoursMenuPanel">
+                  <div class="hours-editor" id="planningHoursEditor">
+                    <label>
+                      Début
+                      <input type="time" id="planningHoursStart" value="08:00" />
+                    </label>
+                    <label>
+                      Fin
+                      <input type="time" id="planningHoursEnd" value="18:00" />
+                    </label>
+                    <button class="mini-btn" type="button" id="planningApplyHours">Appliquer au jour</button>
+                  </div>
+                </div>
+              </div>
+            </div>
             <div class="planning-range" id="planningRange"></div>
           </div>
         </div>
         <div id="planningGrid"></div>
         <div class="planning-slots" id="planningSlots"></div>
         <div class="helper" id="planningHelper">
-          <div class="hours-editor" id="planningHoursEditor">
-            <label>
-              Début
-              <input type="time" id="planningHoursStart" value="08:00" />
-            </label>
-            <label>
-              Fin
-              <input type="time" id="planningHoursEnd" value="18:00" />
-            </label>
-            <button class="mini-btn" type="button" id="planningApplyHours">Appliquer au jour</button>
-          </div>
           <div class="helper" id="planningHelperMessage"></div>
         </div>
       </section>
@@ -2571,6 +2672,13 @@
       const planningModeMonth = document.getElementById("planningModeMonth");
       const planningEditToggle = document.getElementById("planningEditToggle");
       const planningRefreshButton = document.getElementById("planningRefreshButton");
+      const planningSaveDaysHeaderButton = document.getElementById("planningSaveDaysHeaderButton");
+      const planningOverflowWrap = document.getElementById("planningOverflowWrap");
+      const planningOverflowButton = document.getElementById("planningOverflowButton");
+      const planningOverflowPanel = document.getElementById("planningOverflowPanel");
+      const planningMenuToggleEdit = document.getElementById("planningMenuToggleEdit");
+      const planningMenuToggleHours = document.getElementById("planningMenuToggleHours");
+      const planningHoursMenuPanel = document.getElementById("planningHoursMenuPanel");
       const planningHoursStart = document.getElementById("planningHoursStart");
       const planningHoursEnd = document.getElementById("planningHoursEnd");
       const planningApplyHours = document.getElementById("planningApplyHours");
@@ -2829,19 +2937,56 @@
       }
 
       function updatePlanningEditToggleUI() {
-        if (!planningEditToggle) {
-          return;
+        const dirty = hasPendingWorkingDayChanges();
+
+        if (planningEditToggle) {
+          planningEditToggle.classList.toggle("active", planningState.editMode && !dirty);
+          planningEditToggle.classList.toggle("danger", planningState.editMode && dirty);
+          planningEditToggle.classList.toggle("pulse", planningState.editMode && dirty);
+          planningEditToggle.textContent = !planningState.editMode
+            ? "Activer jours"
+            : dirty
+              ? "Enregistrer"
+              : "Edition jours";
         }
 
-        const dirty = hasPendingWorkingDayChanges();
-        planningEditToggle.classList.toggle("active", planningState.editMode && !dirty);
-        planningEditToggle.classList.toggle("danger", planningState.editMode && dirty);
-        planningEditToggle.classList.toggle("pulse", planningState.editMode && dirty);
-        planningEditToggle.textContent = !planningState.editMode
-          ? "Activer jours"
-          : dirty
-            ? "Enregistrer"
-            : "Edition jours";
+        if (planningSaveDaysHeaderButton) {
+          planningSaveDaysHeaderButton.classList.toggle(
+            "hidden",
+            !(planningState.editMode && dirty)
+          );
+          planningSaveDaysHeaderButton.disabled = !(planningState.editMode && dirty);
+        }
+
+        if (planningOverflowButton) {
+          const hideOverflow = planningState.editMode && dirty;
+          planningOverflowButton.classList.toggle("hidden", hideOverflow);
+          if (hideOverflow && planningOverflowPanel) {
+            planningOverflowPanel.classList.add("hidden");
+            planningOverflowButton.setAttribute("aria-expanded", "false");
+          }
+        }
+      }
+
+      function closePlanningOverflowMenu() {
+        if (!planningOverflowPanel || !planningOverflowButton) {
+          return;
+        }
+        planningOverflowPanel.classList.add("hidden");
+        planningOverflowButton.setAttribute("aria-expanded", "false");
+      }
+
+      function togglePlanningOverflowMenu() {
+        if (!planningOverflowPanel || !planningOverflowButton) {
+          return;
+        }
+        const isOpen = !planningOverflowPanel.classList.contains("hidden");
+        if (isOpen) {
+          closePlanningOverflowMenu();
+          return;
+        }
+        planningOverflowPanel.classList.remove("hidden");
+        planningOverflowButton.setAttribute("aria-expanded", "true");
       }
 
       function recordWorkingDayChange(dateISO, open) {
@@ -3551,6 +3696,81 @@
 
       if (planningApplyHours) {
         planningApplyHours.addEventListener("click", applyHoursToSelectedDay);
+      }
+
+      if (planningOverflowButton) {
+        planningOverflowButton.addEventListener("click", (event) => {
+          try {
+            event.preventDefault();
+          } catch (error) {
+            // ignore
+          }
+          try {
+            event.stopPropagation();
+          } catch (error) {
+            // ignore
+          }
+          togglePlanningOverflowMenu();
+        });
+      }
+
+      if (planningOverflowPanel) {
+        planningOverflowPanel.addEventListener("click", (event) => {
+          try {
+            event.stopPropagation();
+          } catch (error) {
+            // ignore
+          }
+        });
+      }
+
+      document.addEventListener("click", (event) => {
+        if (!planningOverflowPanel || !planningOverflowButton) {
+          return;
+        }
+        const target = event?.target;
+        const clickedInside =
+          (planningOverflowWrap && planningOverflowWrap.contains(target)) ||
+          planningOverflowButton.contains(target) ||
+          planningOverflowPanel.contains(target);
+        if (!clickedInside) {
+          closePlanningOverflowMenu();
+        }
+      });
+
+      document.addEventListener("keydown", (event) => {
+        if (event.key === "Escape") {
+          closePlanningOverflowMenu();
+        }
+      });
+
+      if (planningMenuToggleEdit) {
+        planningMenuToggleEdit.addEventListener("click", () => {
+          closePlanningOverflowMenu();
+          if (planningEditToggle) {
+            planningEditToggle.click();
+          }
+        });
+      }
+
+      if (planningMenuToggleHours) {
+        planningMenuToggleHours.addEventListener("click", () => {
+          if (!planningHoursMenuPanel) {
+            return;
+          }
+          planningHoursMenuPanel.classList.toggle("hidden");
+        });
+      }
+
+      if (planningSaveDaysHeaderButton) {
+        planningSaveDaysHeaderButton.addEventListener("click", () => {
+          if (!(planningState.editMode && hasPendingWorkingDayChanges())) {
+            return;
+          }
+          if (planningEditToggle) {
+            planningEditToggle.click();
+          }
+        });
       }
 
       if (planningEditToggle) {
