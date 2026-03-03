@@ -42,7 +42,7 @@ function App() {
         Start prompting (or editing) to see magic happen :)
       </p>
       <iframe
-        title="Upload chantier"
+        title="Upload"
         src="/upload.html"
         style={{
           border: "none",

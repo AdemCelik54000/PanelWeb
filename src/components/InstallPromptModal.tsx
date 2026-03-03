@@ -17,9 +17,9 @@ type Props = {
 };
 
 export default function InstallPromptModal({ variant, onContinue }: Props) {
-  const title = "Installer l’application";
+  const title = "Install the app";
   const subtitle =
-    "Ajoutez ce site à votre écran d’accueil pour l’utiliser comme une vraie application.";
+    "Add this site to your home screen to use it like a real app.";
 
   return (
     <div
@@ -39,18 +39,18 @@ export default function InstallPromptModal({ variant, onContinue }: Props) {
             <>
               <Step
                 icon={<Share size={18} />}
-                title="1) Appuyez sur “Partager”"
-                description="Dans Safari, en bas de l’écran (icône de partage)."
+                title="1) Tap “Share”"
+                description="In Safari, at the bottom of the screen (share icon)."
               />
               <Step
                 icon={<PlusSquare size={18} />}
-                title="2) “Ajouter à l’écran d’accueil”"
-                description="Faites défiler la liste d’actions si besoin."
+                title="2) “Add to Home Screen”"
+                description="Scroll the action list if needed."
               />
               <Step
                 icon={<Smartphone size={18} />}
-                title="3) Ouvrez ensuite depuis l’écran d’accueil"
-                description="La connexion et le panel fonctionneront comme d’habitude."
+                title="3) Open it from your home screen"
+                description="Sign-in and the panel will work as usual."
                 accent="emerald"
               />
             </>
@@ -60,18 +60,18 @@ export default function InstallPromptModal({ variant, onContinue }: Props) {
             <>
               <Step
                 icon={<MoreVertical size={18} />}
-                title="1) Ouvrez le menu (⋮)"
-                description="En haut à droite de votre navigateur."
+                title="1) Open the menu (⋮)"
+                description="At the top-right of your browser."
               />
               <Step
                 icon={<Download size={18} />}
-                title="2) “Installer l’application”"
-                description="Ou “Ajouter à l’écran d’accueil” selon le navigateur."
+                title="2) “Install app”"
+                description="Or “Add to Home screen”, depending on the browser."
               />
               <Step
                 icon={<Smartphone size={18} />}
-                title="3) Lancez l’app depuis l’écran d’accueil"
-                description="Vous accédez au site en mode application."
+                title="3) Launch it from your home screen"
+                description="You’ll open the site in app mode."
                 accent="emerald"
               />
             </>
@@ -81,18 +81,18 @@ export default function InstallPromptModal({ variant, onContinue }: Props) {
             <>
               <Step
                 icon={<Monitor size={18} />}
-                title="1) Cliquez sur l’icône d’installation"
-                description="Dans la barre d’adresse (ou via le menu du navigateur)."
+                title="1) Click the install icon"
+                description="In the address bar (or via the browser menu)."
               />
               <Step
                 icon={<Download size={18} />}
-                title="2) Confirmez “Installer”"
-                description="Une fenêtre s’ouvre pour installer l’application."
+                title="2) Confirm “Install”"
+                description="A window will open to install the app."
               />
               <Step
                 icon={<Monitor size={18} />}
-                title="3) Ouvrez l’app installée"
-                description="Elle apparaît dans vos applications comme une app classique."
+                title="3) Open the installed app"
+                description="It will appear in your apps like a normal application."
                 accent="emerald"
               />
             </>
@@ -102,18 +102,18 @@ export default function InstallPromptModal({ variant, onContinue }: Props) {
             <>
               <Step
                 icon={<Smartphone size={18} />}
-                title="1) Ouvrez le menu du navigateur"
-                description="Cherchez une option d’installation ou d’ajout à l’accueil."
+                title="1) Open the browser menu"
+                description="Look for an install option or ‘add to home screen’."
               />
               <Step
                 icon={<PlusSquare size={18} />}
-                title="2) “Ajouter à l’écran d’accueil”"
-                description="Ou “Installer l’application” si disponible."
+                title="2) “Add to Home Screen”"
+                description="Or “Install app” if available."
               />
               <Step
                 icon={<Download size={18} />}
-                title="3) Ouvrez ensuite depuis votre accueil"
-                description="Vous aurez une expérience plus fluide."
+                title="3) Open it from your home screen"
+                description="You’ll get a smoother experience."
                 accent="emerald"
               />
             </>
@@ -126,7 +126,7 @@ export default function InstallPromptModal({ variant, onContinue }: Props) {
             onClick={onContinue}
             className="rounded-xl bg-white px-4 py-2 text-sm font-semibold text-slate-950 hover:bg-white/90"
           >
-            Continuer sur le site
+            Continue to the site
           </button>
         </div>
       </div>

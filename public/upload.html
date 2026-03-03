@@ -337,6 +337,48 @@
         z-index: 40;
       }
 
+      /* Mobile: keep planning overflow menu fully visible (no clipping/overflow). */
+      @media (max-width: 520px) {
+        .planning-menu-panel {
+          position: fixed;
+          left: 12px;
+          right: 12px;
+          top: 84px;
+          width: auto;
+          max-height: calc(100dvh - 120px);
+          overflow: auto;
+          padding: 8px;
+          z-index: 4000;
+        }
+
+        .planning-menu-item {
+          padding: 8px 9px;
+          border-radius: 11px;
+          font-size: 12px;
+        }
+
+        .planning-menu-subpanel {
+          padding: 8px;
+          border-radius: 11px;
+        }
+
+        .hours-editor {
+          gap: 8px;
+        }
+
+        .hours-editor input[type="time"] {
+          height: 34px;
+          padding: 6px 8px;
+          min-width: 96px;
+        }
+
+        .mini-btn {
+          padding: 7px 9px;
+          border-radius: 10px;
+          font-size: 12px;
+        }
+      }
+
       .planning-menu-item {
         width: 100%;
         display: flex;
@@ -1378,16 +1420,16 @@
   </head>
   <body>
     <div class="install-overlay" id="installOverlay" aria-hidden="true">
-      <div class="install-card" role="dialog" aria-modal="true" aria-label="Installer l’application">
-        <div class="install-title">Installer l’application</div>
+      <div class="install-card" role="dialog" aria-modal="true" aria-label="Install the app">
+        <div class="install-title">Install the app</div>
         <div class="install-subtitle">
-          Ajoutez ce site à votre écran d’accueil pour l’utiliser comme une vraie application.
+          Add this site to your home screen to use it like a real app.
         </div>
 
         <div class="install-steps" id="installSteps"></div>
 
         <div class="install-actions">
-          <button class="install-btn" type="button" id="installContinue">Continuer sur le site</button>
+          <button class="install-btn" type="button" id="installContinue">Continue to the site</button>
         </div>
       </div>
     </div>
@@ -1399,7 +1441,7 @@
             class="login-input"
             type="text"
             id="loginIdentifier"
-            placeholder="Identifiant"
+            placeholder="Username"
             autocomplete="username"
             required
           />
@@ -1407,11 +1449,11 @@
             class="login-input"
             type="password"
             id="loginPassword"
-            placeholder="Mot de passe"
+            placeholder="Password"
             autocomplete="current-password"
             required
           />
-          <button class="login-btn" type="submit">Se connecter</button>
+          <button class="login-btn" type="submit">Sign in</button>
         </form>
         <div class="login-error" id="loginError" role="alert"></div>
       </div>
@@ -1420,10 +1462,10 @@
     <div class="global-loading-overlay" id="globalLoadingOverlay" aria-hidden="true">
       <div class="global-loading-card" role="alert" aria-live="assertive">
         <div class="global-loading-title" id="globalLoadingTitle">
-          Enregistrement en cours…
+          Saving…
         </div>
         <div class="global-loading-subtitle" id="globalLoadingSubtitle">
-          Ne fermez pas l'application.
+          Please do not close the app.
         </div>
 
         <div class="global-loading-preview" id="globalLoadingPreview" aria-hidden="true"></div>
@@ -1439,18 +1481,18 @@
 
     <div class="confirm-overlay" id="confirmOverlay" aria-hidden="true">
       <div class="confirm-modal" role="dialog" aria-modal="true" aria-labelledby="confirmTitle">
-        <div class="confirm-title" id="confirmTitle">Confirmer</div>
+        <div class="confirm-title" id="confirmTitle">Confirm</div>
         <div class="confirm-text" id="confirmText"></div>
         <div class="confirm-actions">
-          <button class="mini-btn" type="button" id="confirmCancel">Annuler</button>
-          <button class="mini-btn danger" type="button" id="confirmOk">Supprimer</button>
+          <button class="mini-btn" type="button" id="confirmCancel">Cancel</button>
+          <button class="mini-btn danger" type="button" id="confirmOk">Delete</button>
         </div>
       </div>
     </div>
     <div class="shell">
       <header>
         <div class="header-actions">
-          <button class="tag logout-tag" type="button" id="logoutButton">Deconnexion</button>
+          <button class="tag logout-tag" type="button" id="logoutButton">Logout</button>
         </div>
         <h1>Abe-info</h1>
         <p class="hidden"></p>
@@ -1459,46 +1501,46 @@
       <section id="adminPanel" class="card admin-card hidden">
         <div class="section-title">Abe-info</div>
         <select id="adminTenantSelect" class="admin-select">
-          <option value="">Selectionner un client</option>
+          <option value="">Select a client</option>
         </select>
-        <div class="helper" id="adminHelper">Connecte en admin.</div>
+        <div class="helper" id="adminHelper">Logged in as admin.</div>
       </section>
 
       <button class="btn btn-save hidden" type="button" id="saveOrderButton">
-        ENREGISTRER L'ORDRE
+        SAVE ORDER
       </button>
       <div class="btn-split hidden" id="selectionActions">
         <button class="btn btn-save" type="button" id="deleteSelectedButton">
-          SUPPRIMER
+          DELETE
         </button>
         <button class="btn btn-download" type="button" id="downloadSelectedButton">
-          ENREGISTRER
+          SAVE
         </button>
       </div>
 
       <section id="categoryView" class="card">
-        <div class="section-title">Ajouter photo</div>
+        <div class="section-title">Add photos</div>
         <div class="grid" id="categoryButtons"></div>
         <div class="helper hidden" id="disabledNotice"></div>
       </section>
 
       <section id="planningView" class="card">
         <div class="planning-header">
-          <div class="section-title">Emploi du temps</div>
+          <div class="section-title">Schedule</div>
           <div class="planning-controls">
-            <button class="mini-btn hidden" type="button" id="planningEditToggle">Activer jours</button>
+            <button class="mini-btn hidden" type="button" id="planningEditToggle">Edit days</button>
             <button class="mini-btn danger hidden" type="button" id="planningSaveDaysHeaderButton">
-              Sauvegarder les jours
+              Save days
             </button>
-            <button class="mini-btn" type="button" id="planningModeMonth">Mois</button>
+            <button class="mini-btn" type="button" id="planningModeMonth">Month</button>
             <button class="mini-btn" type="button" id="planningPrev">←</button>
             <button class="mini-btn" type="button" id="planningNext">→</button>
             <button
               class="icon-btn hidden"
               type="button"
               id="planningRefreshButton"
-              title="Actualiser l'emploi du temps"
-              aria-label="Actualiser l'emploi du temps"
+              title="Refresh schedule"
+              aria-label="Refresh schedule"
             >
               <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                 <path
@@ -1524,24 +1566,24 @@
                   />
                 </svg>
               </button>
-              <div class="planning-menu-panel hidden" id="planningOverflowPanel" role="menu" aria-label="Options emploi du temps">
+              <div class="planning-menu-panel hidden" id="planningOverflowPanel" role="menu" aria-label="Schedule options">
                 <button class="planning-menu-item" type="button" id="planningMenuToggleEdit" role="menuitem">
-                  Activer le jour
+                  Toggle day open
                 </button>
                 <button class="planning-menu-item" type="button" id="planningMenuToggleHours" role="menuitem">
-                  Changer l’heure du jour
+                  Set day hours
                 </button>
                 <div class="planning-menu-subpanel hidden" id="planningHoursMenuPanel">
                   <div class="hours-editor" id="planningHoursEditor">
                     <label>
-                      Début
+                      Start
                       <input type="time" id="planningHoursStart" value="08:00" />
                     </label>
                     <label>
-                      Fin
+                      End
                       <input type="time" id="planningHoursEnd" value="18:00" />
                     </label>
-                    <button class="mini-btn" type="button" id="planningApplyHours">Appliquer au jour</button>
+                    <button class="mini-btn" type="button" id="planningApplyHours">Apply to day</button>
                   </div>
                 </div>
               </div>
@@ -1558,7 +1600,7 @@
 
       <section id="subcategoryView" class="card hidden">
         <button class="btn btn-back" type="button" id="backToCategories">
-          ← Retour
+          ← Back
         </button>
         <div class="section-title" id="subcategoryTitle"></div>
         <div class="grid" id="subcategoryButtons"></div>
@@ -1566,12 +1608,12 @@
 
       <section id="uploadView" class="card hidden">
         <button class="btn btn-back" type="button" id="backToSubcategories">
-          ← Retour
+          ← Back
         </button>
-        <div class="section-title" id="uploadTitle">Ajouter photo</div>
+        <div class="section-title" id="uploadTitle">Add photos</div>
         <div class="path-box" id="selectedPath"></div>
         <button class="btn btn-upload" type="button" id="uploadButton">
-          Ajouter une photo
+          Add photos
         </button>
         <input
           id="fileInput"
@@ -1580,19 +1622,19 @@
           multiple
           class="hidden"
         />
-        <div class="helper">Formats acceptés: jpg, jpeg, png, webp.</div>
+        <div class="helper">Accepted formats: jpg, jpeg, png, webp.</div>
         <div class="status" id="statusMessage" aria-live="polite"></div>
       </section>
       <section id="orderView" class="card order-card hidden">
         <div class="order-header">
-          <div class="section-title">Ordre des photos</div>
-          <button class="btn btn-select" type="button" id="selectModeButton">Selectionner</button>
+          <div class="section-title">Photo order</div>
+          <button class="btn btn-select" type="button" id="selectModeButton">Select</button>
         </div>
         <div class="order-scroll" id="orderScroll">
           <div class="order-grid" id="orderGrid"></div>
-          <div class="order-empty hidden" id="orderEmpty">Aucune photo dans ce dossier.</div>
+          <div class="order-empty hidden" id="orderEmpty">No photos in this folder.</div>
         </div>
-        <div class="helper">Appui long pour deplacer une image.</div>
+        <div class="helper">Long press to move an image.</div>
         <div class="status" id="orderStatus" aria-live="polite"></div>
       </section>
     </div>
@@ -1666,22 +1708,22 @@
               <div class="install-step">
                 <div class="install-icon">${iconSvg("share")}</div>
                 <div>
-                  <div class="install-step-title">1) Appuyez sur “Partager”</div>
-                  <div class="install-step-desc">Dans Safari, en bas de l’écran (icône de partage).</div>
+                  <div class="install-step-title">1) Tap “Share”</div>
+                  <div class="install-step-desc">In Safari, at the bottom of the screen (share icon).</div>
                 </div>
               </div>
               <div class="install-step">
                 <div class="install-icon">${iconSvg("plus")}</div>
                 <div>
-                  <div class="install-step-title">2) “Ajouter à l’écran d’accueil”</div>
-                  <div class="install-step-desc">Faites défiler la liste d’actions si besoin.</div>
+                  <div class="install-step-title">2) “Add to Home Screen”</div>
+                  <div class="install-step-desc">Scroll the actions list if needed.</div>
                 </div>
               </div>
               <div class="install-step">
                 <div class="install-icon">${iconSvg("phone")}</div>
                 <div>
-                  <div class="install-step-title">3) Ouvrez ensuite depuis l’écran d’accueil</div>
-                  <div class="install-step-desc">En mode application, vous arrivez directement sur le site.</div>
+                  <div class="install-step-title">3) Open it from your home screen</div>
+                  <div class="install-step-desc">You’ll use the site in app mode.</div>
                 </div>
               </div>
             `;
@@ -1693,22 +1735,22 @@
               <div class="install-step">
                 <div class="install-icon">${iconSvg("menu")}</div>
                 <div>
-                  <div class="install-step-title">1) Ouvrez le menu</div>
-                  <div class="install-step-desc">Dans votre navigateur (souvent ⋮ en haut à droite).</div>
+                  <div class="install-step-title">1) Open the menu</div>
+                  <div class="install-step-desc">In your browser (often ⋮ at the top right).</div>
                 </div>
               </div>
               <div class="install-step">
                 <div class="install-icon">${iconSvg("download")}</div>
                 <div>
-                  <div class="install-step-title">2) “Installer l’application”</div>
-                  <div class="install-step-desc">Ou “Ajouter à l’écran d’accueil”.</div>
+                  <div class="install-step-title">2) “Install app”</div>
+                  <div class="install-step-desc">Or “Add to Home screen”.</div>
                 </div>
               </div>
               <div class="install-step">
                 <div class="install-icon">${iconSvg("phone")}</div>
                 <div>
-                  <div class="install-step-title">3) Ouvrez depuis l’écran d’accueil</div>
-                  <div class="install-step-desc">Vous utilisez le site comme une app.</div>
+                  <div class="install-step-title">3) Open it from your home screen</div>
+                  <div class="install-step-desc">You’ll use the site like an app.</div>
                 </div>
               </div>
             `;
@@ -1720,22 +1762,22 @@
               <div class="install-step">
                 <div class="install-icon">${iconSvg("monitor")}</div>
                 <div>
-                  <div class="install-step-title">1) Cherchez “Installer”</div>
-                  <div class="install-step-desc">Dans la barre d’adresse ou le menu du navigateur.</div>
+                  <div class="install-step-title">1) Look for “Install”</div>
+                  <div class="install-step-desc">In the address bar or your browser menu.</div>
                 </div>
               </div>
               <div class="install-step">
                 <div class="install-icon">${iconSvg("download")}</div>
                 <div>
-                  <div class="install-step-title">2) Confirmez l’installation</div>
-                  <div class="install-step-desc">Une fenêtre s’ouvre pour installer l’application.</div>
+                  <div class="install-step-title">2) Confirm the installation</div>
+                  <div class="install-step-desc">A window will open to install the app.</div>
                 </div>
               </div>
               <div class="install-step">
                 <div class="install-icon">${iconSvg("monitor")}</div>
                 <div>
-                  <div class="install-step-title">3) Ouvrez l’app installée</div>
-                  <div class="install-step-desc">Elle se lance comme une application classique.</div>
+                  <div class="install-step-title">3) Open the installed app</div>
+                  <div class="install-step-desc">It will launch like a regular application.</div>
                 </div>
               </div>
             `;
@@ -1746,22 +1788,22 @@
             <div class="install-step">
               <div class="install-icon">${iconSvg("phone")}</div>
               <div>
-                <div class="install-step-title">1) Ouvrez le menu du navigateur</div>
-                <div class="install-step-desc">Cherchez une option d’installation ou d’ajout à l’accueil.</div>
+                <div class="install-step-title">1) Open your browser menu</div>
+                <div class="install-step-desc">Look for an install option or “Add to Home screen”.</div>
               </div>
             </div>
             <div class="install-step">
               <div class="install-icon">${iconSvg("plus")}</div>
               <div>
-                <div class="install-step-title">2) Ajouter à l’écran d’accueil</div>
-                <div class="install-step-desc">Ou “Installer l’application” si disponible.</div>
+                <div class="install-step-title">2) Add to Home screen</div>
+                <div class="install-step-desc">Or “Install app” if available.</div>
               </div>
             </div>
             <div class="install-step">
               <div class="install-icon">${iconSvg("download")}</div>
               <div>
-                <div class="install-step-title">3) Ouvrez ensuite depuis votre accueil</div>
-                <div class="install-step-desc">Vous aurez une expérience plus fluide.</div>
+                <div class="install-step-title">3) Open it from your home screen</div>
+                <div class="install-step-desc">You’ll get a smoother experience.</div>
               </div>
             </div>
           `;
@@ -1907,7 +1949,7 @@
           fallback.className = "preview-fallback hidden";
           const ext = document.createElement("div");
           ext.className = "preview-ext";
-          ext.textContent = String(item?.label || item?.type || "FICHIER")
+          ext.textContent = String(item?.label || item?.type || "FILE")
             .toUpperCase()
             .slice(0, 8);
           const name = document.createElement("div");
@@ -1923,7 +1965,7 @@
             img = document.createElement("img");
             img.decoding = "async";
             img.loading = "eager";
-            img.alt = variant === "delete" ? "Suppression" : "Ajout";
+            img.alt = variant === "delete" ? "Deleting" : "Uploading";
             img.src = item.src;
             img.addEventListener(
               "error",
@@ -1939,7 +1981,7 @@
 
           const badge = document.createElement("div");
           badge.className = `preview-badge ${variant === "delete" ? "delete" : "upload"}`;
-          badge.textContent = variant === "delete" ? "SUPPR" : "AJOUT";
+          badge.textContent = variant === "delete" ? "DEL" : "ADD";
 
           if (img) {
             cell.appendChild(img);
@@ -1998,7 +2040,7 @@
           if (type === "image/png") return "PNG";
           if (type === "image/webp") return "WEBP";
           if (type.startsWith("image/")) return "IMAGE";
-          return "FICHIER";
+          return "FILE";
         };
 
         return files
@@ -2054,11 +2096,11 @@
 
         if (globalLoadingTitle) {
           globalLoadingTitle.textContent =
-            title || "Enregistrement en cours…";
+            title || "Saving…";
         }
         if (globalLoadingSubtitle) {
           globalLoadingSubtitle.textContent =
-            subtitle || "Ne fermez pas l'application.";
+            subtitle || "Please do not close the app.";
         }
 
         updateGlobalLoadingProgress({ current, total, mode });
@@ -2225,18 +2267,18 @@
       function showConfirmDialog({ title, message, okText, cancelText }) {
         return new Promise((resolve) => {
           if (!confirmOverlay || !confirmOk || !confirmCancel) {
-            resolve(window.confirm(message || "Confirmer ?"));
+            resolve(window.confirm(message || "Confirm?"));
             return;
           }
 
           if (confirmTitle) {
-            confirmTitle.textContent = title || "Confirmer";
+            confirmTitle.textContent = title || "Confirm";
           }
           if (confirmText) {
             confirmText.textContent = message || "";
           }
           confirmOk.textContent = okText || "OK";
-          confirmCancel.textContent = cancelText || "Annuler";
+          confirmCancel.textContent = cancelText || "Cancel";
 
           const cleanup = () => {
             confirmOverlay.classList.remove("active");
@@ -2299,9 +2341,9 @@
           if (tenantFeatures.image) {
             headerTitle.textContent = "Abe-info";
           } else if (tenantFeatures.emploi_du_temps) {
-            headerTitle.textContent = "Emploi du temps";
+            headerTitle.textContent = "Schedule";
           } else {
-            headerTitle.textContent = "Accès";
+            headerTitle.textContent = "Access";
           }
         }
         if (headerSubtitle) {
@@ -2309,10 +2351,10 @@
             headerSubtitle.textContent = "";
             headerSubtitle.classList.add("hidden");
           } else if (tenantFeatures.emploi_du_temps) {
-            headerSubtitle.textContent = "Consultez l'emploi du temps.";
+            headerSubtitle.textContent = "View the schedule.";
             headerSubtitle.classList.remove("hidden");
           } else {
-            headerSubtitle.textContent = "Fonctionnalités désactivées.";
+            headerSubtitle.textContent = "Features disabled.";
             headerSubtitle.classList.remove("hidden");
           }
         }
@@ -2321,7 +2363,7 @@
           const show = !tenantFeatures.image && !tenantFeatures.emploi_du_temps;
           disabledNotice.classList.toggle("hidden", !show);
           if (show) {
-            disabledNotice.textContent = "Les fonctionnalités image et emploi du temps sont désactivées pour ce compte.";
+            disabledNotice.textContent = "Image and schedule features are disabled for this account.";
           } else {
             disabledNotice.textContent = "";
           }
@@ -2378,7 +2420,7 @@
       function handleAuthError(message) {
         clearAuthToken();
         isAuthenticated = false;
-        showLoginError(message || "Erreur d'identification.");
+        showLoginError(message || "Sign-in error.");
         setLocked(true);
       }
 
@@ -2394,7 +2436,7 @@
 
         const response = await fetch(url, { ...options, headers });
         if (response.status === 401) {
-          handleAuthError("Session expiree.");
+          handleAuthError("Session expired.");
         }
         return response;
       }
@@ -2410,7 +2452,7 @@
         }
         if (adminHelper) {
           adminHelper.textContent = isAdmin
-            ? "Choisissez un client pour acceder aux dossiers."
+            ? "Select a client to access their folders."
             : "";
         }
       }
@@ -2422,7 +2464,7 @@
         adminTenantSelect.innerHTML = "";
         const placeholder = document.createElement("option");
         placeholder.value = "";
-        placeholder.textContent = "Selectionner un client";
+        placeholder.textContent = "Select a client";
         adminTenantSelect.appendChild(placeholder);
         options.forEach((tenant) => {
           const opt = document.createElement("option");
@@ -2460,7 +2502,7 @@
 
         const response = await fetchWithAuth(TENANT_CONFIG_ENDPOINT);
         if (!response.ok) {
-          handleAuthError("Session expiree.");
+          handleAuthError("Session expired.");
           return;
         }
         const data = await response.json();
@@ -2495,13 +2537,13 @@
           });
 
           if (!response.ok) {
-            handleAuthError("Erreur d'identification.");
+            handleAuthError("Sign-in error.");
             return;
           }
 
           const data = await response.json();
           if (!data?.token) {
-            handleAuthError("Erreur d'identification.");
+            handleAuthError("Sign-in error.");
             return;
           }
 
@@ -2530,7 +2572,7 @@
           }
           loginIdentifier.value = "";
         } catch (error) {
-          handleAuthError("Erreur d'identification.");
+          handleAuthError("Sign-in error.");
         } finally {
           if (submitButton) {
             submitButton.disabled = false;
@@ -2550,7 +2592,7 @@
           isAuthenticated = false;
           const tenantResponse = await fetchWithAuth(TENANT_CONFIG_ENDPOINT);
           if (!tenantResponse.ok) {
-            handleAuthError("Session expiree.");
+            handleAuthError("Session expired.");
             return;
           }
           const data = await tenantResponse.json();
@@ -2577,7 +2619,7 @@
           schedulePlanningRefresh();
           return;
         } catch (error) {
-          handleAuthError("Session expiree.");
+          handleAuthError("Session expired.");
         }
       }
 
@@ -2617,7 +2659,7 @@
           : DEFAULT_TENANT_ID;
         const password = loginPassword.value.trim();
         if (!identifier || !password) {
-          showLoginError("Identifiant et mot de passe requis.");
+          showLoginError("Username and password are required.");
           return;
         }
         loginPassword.value = "";
@@ -2798,12 +2840,12 @@
 
       function formatRangeLabelWeek(start) {
         const end = addDays(start, 6);
-        const fmt = new Intl.DateTimeFormat("fr-FR", { day: "2-digit", month: "2-digit" });
+        const fmt = new Intl.DateTimeFormat("en-GB", { day: "2-digit", month: "2-digit" });
         return `${fmt.format(start)} → ${fmt.format(end)}`;
       }
 
       function formatRangeLabelMonth(date) {
-        const fmt = new Intl.DateTimeFormat("fr-FR", { month: "long", year: "numeric" });
+        const fmt = new Intl.DateTimeFormat("en-GB", { month: "long", year: "numeric" });
         return fmt.format(new Date(date.getFullYear(), date.getMonth(), 1));
       }
 
@@ -2838,7 +2880,7 @@
         }
 
         if (planningHelperMessage) {
-          planningHelperMessage.textContent = "Chargement du planning…";
+          planningHelperMessage.textContent = "Loading schedule…";
         }
         planningGrid.setAttribute("aria-busy", "true");
 
@@ -2852,7 +2894,7 @@
           const response = await fetchWithAuth(url);
           if (!response.ok) {
             if (planningHelperMessage) {
-              planningHelperMessage.textContent = "Impossible de charger le planning.";
+              planningHelperMessage.textContent = "Could not load the schedule.";
             }
             planningGrid.setAttribute("aria-busy", "false");
             return;
@@ -2864,7 +2906,7 @@
           }
         } catch (error) {
           if (planningHelperMessage) {
-            planningHelperMessage.textContent = "Impossible de charger le planning.";
+            planningHelperMessage.textContent = "Could not load the schedule.";
           }
         } finally {
           planningGrid.setAttribute("aria-busy", "false");
@@ -2944,10 +2986,10 @@
           planningEditToggle.classList.toggle("danger", planningState.editMode && dirty);
           planningEditToggle.classList.toggle("pulse", planningState.editMode && dirty);
           planningEditToggle.textContent = !planningState.editMode
-            ? "Activer jours"
+            ? "Edit days"
             : dirty
-              ? "Enregistrer"
-              : "Edition jours";
+              ? "Save"
+              : "Editing days";
         }
 
         if (planningSaveDaysHeaderButton) {
@@ -3020,7 +3062,7 @@
 
         try {
           if (planningHelperMessage) {
-            planningHelperMessage.textContent = "Enregistrement des jours…";
+            planningHelperMessage.textContent = "Saving days…";
           }
           const response = await fetchWithAuth(WORKING_DAYS_ENDPOINT, {
             method: "POST",
@@ -3029,7 +3071,7 @@
           });
           if (!response.ok) {
             if (planningHelperMessage) {
-              planningHelperMessage.textContent = "Impossible d'enregistrer les jours.";
+              planningHelperMessage.textContent = "Could not save days.";
             }
             return false;
           }
@@ -3038,12 +3080,12 @@
           planningState.pendingDayChanges = new Map();
           updatePlanningEditToggleUI();
           if (planningHelperMessage) {
-            planningHelperMessage.textContent = "Jours enregistrés.";
+            planningHelperMessage.textContent = "Days saved.";
           }
           return true;
         } catch (error) {
           if (planningHelperMessage) {
-            planningHelperMessage.textContent = "Impossible d'enregistrer les jours.";
+            planningHelperMessage.textContent = "Could not save days.";
           }
           return false;
         }
@@ -3196,7 +3238,7 @@
           itemsByMinute.get(minute).push(item);
         });
 
-        const titleFmt = new Intl.DateTimeFormat("fr-FR", {
+        const titleFmt = new Intl.DateTimeFormat("en-GB", {
           weekday: "long",
           day: "2-digit",
           month: "2-digit",
@@ -3237,26 +3279,26 @@
               top.className = "slot-item-top";
 
               const title = document.createElement("div");
-              title.textContent = prenom ? `${heure} • ${prenom}` : `Rendez-vous • ${heure}`;
+              title.textContent = prenom ? `${heure} • ${prenom}` : `Appointment • ${heure}`;
               top.appendChild(title);
 
               const deleteBtn = document.createElement("button");
               deleteBtn.type = "button";
               deleteBtn.className = "slot-delete-btn";
-              deleteBtn.textContent = "Supprimer";
+              deleteBtn.textContent = "Delete";
               deleteBtn.addEventListener("click", async () => {
                 const ok = await showConfirmDialog({
-                  title: "Supprimer le rendez-vous ?",
-                  message: "Voulez-vous vraiment supprimer ce rendez-vous ?",
-                  okText: "Oui, supprimer",
-                  cancelText: "Annuler",
+                  title: "Delete appointment?",
+                  message: "Do you really want to delete this appointment?",
+                  okText: "Yes, delete",
+                  cancelText: "Cancel",
                 });
                 if (!ok) {
                   return;
                 }
 
                 if (planningHelperMessage) {
-                  planningHelperMessage.textContent = "Suppression…";
+                  planningHelperMessage.textContent = "Deleting…";
                 }
 
                 try {
@@ -3272,7 +3314,7 @@
 
                   if (!response.ok) {
                     if (planningHelperMessage) {
-                      planningHelperMessage.textContent = "Impossible de supprimer le rendez-vous.";
+                      planningHelperMessage.textContent = "Could not delete the appointment.";
                     }
                     return;
                   }
@@ -3287,12 +3329,12 @@
                   planningState.byDate.set(iso, next);
 
                   if (planningHelperMessage) {
-                    planningHelperMessage.textContent = "Rendez-vous supprimé.";
+                    planningHelperMessage.textContent = "Appointment deleted.";
                   }
                   await refreshPlanning();
                 } catch (error) {
                   if (planningHelperMessage) {
-                    planningHelperMessage.textContent = "Impossible de supprimer le rendez-vous.";
+                    planningHelperMessage.textContent = "Could not delete the appointment.";
                   }
                 }
               });
@@ -3338,8 +3380,8 @@
         planningGrid.className = "planning-week";
         planningGrid.innerHTML = "";
 
-        const weekdayFmt = new Intl.DateTimeFormat("fr-FR", { weekday: "short" });
-        const dayFmt = new Intl.DateTimeFormat("fr-FR", { day: "2-digit", month: "2-digit" });
+        const weekdayFmt = new Intl.DateTimeFormat("en-GB", { weekday: "short" });
+        const dayFmt = new Intl.DateTimeFormat("en-GB", { day: "2-digit", month: "2-digit" });
 
         for (let i = 0; i < 7; i++) {
           const day = addDays(start, i);
@@ -3384,7 +3426,7 @@
         planningGrid.className = "planning-month";
         planningGrid.innerHTML = "";
 
-        const weekdays = ["lun", "mar", "mer", "jeu", "ven", "sam", "dim"];
+        const weekdays = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
         weekdays.forEach((w) => {
           const cell = document.createElement("div");
           cell.className = "weekday";
@@ -3420,7 +3462,7 @@
           day.classList.toggle("editing", planningState.editMode);
           day.classList.toggle("muted", isPast || !isCurrentMonth);
           day.textContent = String(dayDate.getDate());
-          day.title = count ? `${count} rendez-vous` : "";
+          day.title = count ? `${count} appointments` : "";
 
           const clearPaintPress = () => {
             if (planningState.paint.pressTimer) {
@@ -3476,8 +3518,8 @@
 
             if (planningHelperMessage) {
               planningHelperMessage.textContent = planningState.paint.targetOpen
-                ? "Glissez pour ouvrir plusieurs jours."
-                : "Glissez pour fermer plusieurs jours.";
+                ? "Drag to open multiple days."
+                : "Drag to close multiple days.";
             }
 
             applyPaintToElement(day);
@@ -3536,7 +3578,7 @@
               stopPaint();
               if (planningHelperMessage) {
                 planningHelperMessage.textContent = planningState.editMode
-                  ? "Mode edition: cliquez/appui long pour ouvrir/fermer."
+                  ? "Edit mode: tap/long-press to open/close."
                   : "";
               }
             }
@@ -3587,7 +3629,7 @@
         if (isAdmin && !selectedTenantId) {
           planningState.byDate = new Map();
           if (planningHelperMessage) {
-            planningHelperMessage.textContent = "Choisissez un client pour afficher le planning.";
+            planningHelperMessage.textContent = "Choose a client to view the schedule.";
           }
           renderPlanning();
           return;
@@ -3665,7 +3707,7 @@
         planningState.dayHours.set(dateIso, { start, end });
 
         if (planningHelperMessage) {
-          planningHelperMessage.textContent = "Enregistrement des horaires…";
+          planningHelperMessage.textContent = "Saving hours…";
         }
 
         try {
@@ -3678,18 +3720,18 @@
 
           if (!response.ok) {
             if (planningHelperMessage) {
-              planningHelperMessage.textContent = "Impossible d'enregistrer les horaires.";
+              planningHelperMessage.textContent = "Could not save hours.";
             }
             return;
           }
 
           if (planningHelperMessage) {
-            planningHelperMessage.textContent = "Horaires enregistrés.";
+            planningHelperMessage.textContent = "Hours saved.";
           }
           await refreshPlanning();
         } catch (error) {
           if (planningHelperMessage) {
-            planningHelperMessage.textContent = "Impossible d'enregistrer les horaires.";
+            planningHelperMessage.textContent = "Could not save hours.";
           }
         }
       }
@@ -3781,7 +3823,7 @@
             planningState.pendingDayChanges = new Map();
             if (planningHelperMessage) {
               planningHelperMessage.textContent =
-                "Mode edition: appui long + glisser pour ouvrir/fermer plusieurs jours.";
+                "Edit mode: long-press + drag to open/close multiple days.";
             }
             updatePlanningEditToggleUI();
             renderPlanning();
@@ -3825,7 +3867,7 @@
 
       function updateSelectionModeUI() {
         selectModeButton.classList.toggle("active", state.selectMode);
-        selectModeButton.textContent = "Selectionner";
+        selectModeButton.textContent = "Select";
         saveOrderButton.classList.toggle("hidden", state.selectMode);
         selectionActions.classList.toggle("hidden", !state.selectMode);
       }
@@ -4094,7 +4136,7 @@
             image.kind === "video"
               ? buildVideoThumbnail(image.public_id)
               : buildImagePreviewUrl(image.secure_url);
-          img.alt = state.currentLabel || "Photo chantier";
+          img.alt = state.currentLabel || "Site photo";
           img.loading = "lazy";
 
           const badge = document.createElement("div");
@@ -4157,7 +4199,7 @@
         const endpoint = `${LIST_IMAGES_ENDPOINT}?folder=${encodeURIComponent(
           state.currentFolder
         )}`;
-        orderStatus.textContent = "Chargement des photos...";
+        orderStatus.textContent = "Loading photos...";
         orderGrid.innerHTML = "";
         orderEmpty.classList.add("hidden");
 
@@ -4173,7 +4215,7 @@
               body: errorText,
             });
             orderStatus.textContent =
-              "Erreur lors du chargement des photos. Verifie la connexion ou la config Cloudinary.";
+              "Failed to load photos. Check your connection and Cloudinary configuration.";
             return;
           }
 
@@ -4202,7 +4244,7 @@
             error,
           });
           orderStatus.textContent =
-            "Erreur lors du chargement des photos. Verifie la connexion ou la config Cloudinary.";
+            "Failed to load photos. Check your connection and Cloudinary configuration.";
         }
       }
 
@@ -4235,19 +4277,19 @@
 
       async function saveCurrentOrder() {
         if (!state.images.length) {
-          orderStatus.textContent = "Aucune photo a enregistrer.";
+          orderStatus.textContent = "No photos to save.";
           return;
         }
 
         setGlobalLoading({
-          title: "Enregistrement en cours…",
-          subtitle: "Ne fermez pas l'application.",
+          title: "Saving…",
+          subtitle: "Please do not close the app.",
           mode: "indeterminate",
         });
 
-        orderStatus.textContent = "Enregistrement de l'ordre...";
+        orderStatus.textContent = "Saving order...";
         saveOrderButton.disabled = true;
-        saveOrderButton.textContent = "ENREGISTREMENT...";
+        saveOrderButton.textContent = "SAVING...";
 
         const orderedIds = getOrderedPublicIds();
         const payload = orderedIds.map((id, index) => {
@@ -4265,7 +4307,7 @@
         } finally {
           clearGlobalLoading();
           saveOrderButton.disabled = false;
-          saveOrderButton.textContent = "ENREGISTRER L'ORDRE";
+          saveOrderButton.textContent = "SAVE ORDER";
         }
 
         if (!result?.ok) {
@@ -4280,8 +4322,8 @@
             details.push(result.error);
           }
           orderStatus.textContent = details.length
-            ? `Erreur lors de l'enregistrement. ${details.join(" • ")}`
-            : "Erreur lors de l'enregistrement.";
+            ? `Failed to save. ${details.join(" • ")}`
+            : "Failed to save.";
           return;
         }
 
@@ -4292,7 +4334,7 @@
         state.hasManualOrder = true;
         state.images = sortImages(state.images);
         renderOrderGrid();
-        orderStatus.textContent = "Ordre sauvegarde.";
+        orderStatus.textContent = "Order saved.";
 
         showView("category");
       }
@@ -4369,8 +4411,8 @@
         let processedCount = 0;
 
         setGlobalLoading({
-          title: "Envoi des photos…",
-          subtitle: "Ne fermez pas l'application.",
+          title: "Uploading photos…",
+          subtitle: "Please do not close the app.",
           mode: useDeterminate ? "determinate" : "indeterminate",
           current: 0,
           total: useDeterminate ? totalFiles : 0,
@@ -4390,8 +4432,8 @@
         }
 
         uploadButton.disabled = true;
-        uploadButton.textContent = "Upload en cours...";
-        statusMessage.textContent = "Verification des doublons...";
+        uploadButton.textContent = "Uploading...";
+        statusMessage.textContent = "Checking for duplicates...";
 
         try {
           for (const file of files) {
@@ -4436,7 +4478,7 @@
           });
           if (!signaturePayload?.signature || !signaturePayload?.timestamp) {
             skippedCount += 1;
-            lastError = "Signature upload invalide";
+            lastError = "Invalid upload signature";
             continue;
           }
 
@@ -4498,22 +4540,22 @@
         }
 
         uploadButton.disabled = false;
-        uploadButton.textContent = "Ajouter une photo";
+        uploadButton.textContent = "Add photos";
 
         if (uploadedCount > 0) {
-          statusMessage.textContent = `${uploadedCount} photo(s) ajoutee(s) avec succes.`;
+          statusMessage.textContent = `${uploadedCount} photo(s) uploaded successfully.`;
           if (duplicateCount > 0) {
-            statusMessage.textContent += ` ${duplicateCount} doublon(s) detecte(s).`;
+            statusMessage.textContent += ` ${duplicateCount} duplicate(s) detected.`;
           }
           if (skippedCount > 0) {
-            statusMessage.textContent += ` ${skippedCount} fichier(s) ignores.`;
+            statusMessage.textContent += ` ${skippedCount} file(s) skipped.`;
           }
           showView("category");
         } else if (skippedCount > 0) {
           const detail = lastError ? ` (${lastError})` : "";
-          statusMessage.textContent = `Aucune photo envoyee. Fichiers trop lourds ou erreurs.${detail}`;
+          statusMessage.textContent = `No photos uploaded. Files may be too large or there were errors.${detail}`;
         } else if (duplicateCount > 0) {
-          statusMessage.textContent = "Aucune photo envoyee. Doublons detectes.";
+          statusMessage.textContent = "No photos uploaded. Duplicates detected.";
         } else {
           statusMessage.textContent = "";
         }
@@ -4619,7 +4661,7 @@
 
       async function deleteSelectedAssets() {
         if (state.selectedIds.size === 0) {
-          orderStatus.textContent = "Aucune selection.";
+          orderStatus.textContent = "No selection.";
           return;
         }
         const items = state.images
@@ -4630,8 +4672,8 @@
           }));
 
         setGlobalLoading({
-          title: "Suppression en cours…",
-          subtitle: "Ne fermez pas l'application.",
+          title: "Deleting…",
+          subtitle: "Please do not close the app.",
           mode: "indeterminate",
         });
 
@@ -4648,7 +4690,7 @@
           // ignore preview errors
         }
 
-        orderStatus.textContent = "Suppression en cours...";
+        orderStatus.textContent = "Deleting...";
         deleteSelectedButton.disabled = true;
         downloadSelectedButton.disabled = true;
 
@@ -4669,11 +4711,11 @@
         downloadSelectedButton.disabled = false;
 
         if (!success) {
-          orderStatus.textContent = "Erreur lors de la suppression.";
+          orderStatus.textContent = "Failed to delete.";
           return;
         }
 
-        orderStatus.textContent = "Suppression terminee.";
+        orderStatus.textContent = "Delete complete.";
         state.selectMode = false;
         resetSelection();
         updateSelectionModeUI();
@@ -4695,11 +4737,11 @@
 
       async function downloadSelectedAssets() {
         if (state.selectedIds.size === 0) {
-          orderStatus.textContent = "Aucune selection.";
+          orderStatus.textContent = "No selection.";
           return;
         }
         const items = state.images.filter((image) => state.selectedIds.has(image.public_id));
-        orderStatus.textContent = "Telechargement en cours...";
+        orderStatus.textContent = "Downloading...";
         deleteSelectedButton.disabled = true;
         downloadSelectedButton.disabled = true;
 
@@ -4728,7 +4770,7 @@
 
         deleteSelectedButton.disabled = false;
         downloadSelectedButton.disabled = false;
-        orderStatus.textContent = "Telechargement termine.";
+        orderStatus.textContent = "Download complete.";
         state.selectMode = false;
         resetSelection();
         updateSelectionModeUI();
