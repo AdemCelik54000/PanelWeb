@@ -1,61 +1,118 @@
-# Clauddepo – Mobile Portfolio Image Uploader
+# Clauddepo – Application Mobile de Gestion de Portfolio
 
-This project is a **mobile-friendly web application** designed to simplify portfolio management for professionals. It allows users to upload, organize, and manage images in a structured way, with support for multiple clients (tenants) and work scheduling features.
+**Clauddepo** est une application web mobile conçue pour simplifier la gestion de **portfolios d’images pour les professionnels**.
+Elle permet d’uploader, organiser et gérer des images facilement, tout en prenant en charge **plusieurs clients (multi-tenant)** ainsi que la gestion d’un **emploi du temps**.
 
-Built with **Netlify Functions** (in `netlify/functions`) + a Vite frontend.
+L’application est pensée pour être **simple, rapide et optimisée pour mobile**.
 
-## What the App Does
+---
 
-- **Image Upload & Management**: Easily upload images to Cloudinary, list them, reorder, and delete as needed. Perfect for portfolios, galleries, or client presentations.
-- **Multi-Tenant Support**: Add and manage multiple clients/tenants, each with their own secure folder and settings.
-- **Work Schedule (Emploi du Temps)**: View and edit working hours and schedules for each tenant, including per-day start/end times.
-- **Mobile-Optimized**: Designed for mobile devices with a responsive PWA (Progressive Web App) interface.
-- **Secure Authentication**: JWT-based login with hashed passwords for tenant access.
+# Fonctionnalités principales
 
-## Testing Locally (with Environment Variables)
+## Gestion des images
 
-1) Install dependencies
+L’application permet de gérer facilement un portfolio d’images :
 
-- `npm install`
+* Upload d’images
+* Affichage des images dans une galerie
+* Réorganisation de l’ordre des images
+* Suppression d’images
 
-2) Create a `.env` file from the example
+Cette fonctionnalité est idéale pour :
 
-- Copy `.env.example` → `.env`
-- Fill with **TEST keys** (Supabase + Cloudinary) to avoid using production credits.
+* portfolios professionnels
+* galeries de projets
+* présentations pour clients
 
-Required environment variables for functions:
-- `AUTH_SECRET`
-- `SUPABASE_URL`
-- `SUPABASE_SERVICE_ROLE_KEY`
-- `CLOUDINARY_CLOUD_NAME`
-- `CLOUDINARY_API_KEY`
-- `CLOUDINARY_API_SECRET`
-- `CLOUDINARY_UPLOAD_PRESET`
+---
 
-3) Run local Netlify dev (proxy + functions)
+## Support multi-clients (Multi-Tenant)
 
-- `npm run dev:netlify`
+Clauddepo permet de gérer **plusieurs clients dans une seule application**.
 
-Or (recommended single command):
-- `npm run local`
-	- runs `npm install` if needed
-	- creates `.env` from `.env.example` if missing
-	- starts `netlify dev`
+Chaque client possède :
 
-URLs:
-- App + functions: `http://localhost:8888/`
-- The app serves `/upload.html` and calls `/.netlify/functions/*` just like in production.
+* son propre espace sécurisé
+* son dossier d’images
+* ses paramètres
+* son emploi du temps
 
-## Important Notes
+Les données sont séparées afin que **chaque client n’accède qu’à ses propres informations**.
 
-- Locally, **Cloudinary upload** now uses `cloud_name` + `upload_preset` returned by `/.netlify/functions/sign-upload`, so you can switch accounts by changing variables in `.env`.
-- Never commit secrets to the repo (`.env` is ignored by git).
+---
 
-## Feature Flags (in `tenants` table)
+## Gestion de l’emploi du temps
 
-Two boolean columns allow enabling/disabling features in the panel:
+L’application permet également de gérer un **planning de travail**.
 
-- `image`: enables/disables image-related features (upload, listing, deletion, reordering)
-- `emploi_du_temps`: enables/disables work schedule display and editing
+Fonctionnalités :
 
-Migration SQL: `supabase/migrations/20260122_add_tenants_feature_flags.sql`
+* affichage des horaires
+* modification des horaires
+* configuration par jour
+
+Exemple :
+
+| Jour     | Début | Fin   |
+| -------- | ----- | ----- |
+| Lundi    | 09:00 | 18:00 |
+| Mardi    | 10:00 | 17:00 |
+| Mercredi | 09:00 | 16:00 |
+
+---
+
+## Optimisé pour mobile
+
+L’application est conçue comme une **Progressive Web App (PWA)** :
+
+* interface responsive
+* utilisation simple sur smartphone
+* expérience proche d’une application native
+
+---
+
+## Authentification sécurisée
+
+L’accès à l’application est protégé par :
+
+* authentification sécurisée
+* mots de passe hachés
+* accès séparé pour chaque client
+
+---
+
+# Fonctionnalités configurables
+
+Certaines fonctionnalités peuvent être **activées ou désactivées pour chaque client**.
+
+| Fonctionnalité  | Description                                |
+| --------------- | ------------------------------------------ |
+| Images          | active ou désactive la gestion des images  |
+| Emploi du temps | active ou désactive la gestion du planning |
+
+Cela permet d’adapter l’application selon les besoins de chaque utilisateur.
+
+---
+
+# Stack technique
+
+Le projet utilise les technologies suivantes :
+
+* **Vite** pour le frontend
+* **Netlify Functions** pour les fonctions backend
+* **Supabase** pour la base de données
+* **Cloudinary** pour le stockage et la gestion des images
+* **JWT** pour l’authentification
+
+---
+
+# Objectif du projet
+
+Clauddepo a été créé pour fournir une **solution simple et mobile** permettant aux professionnels de :
+
+* gérer leurs portfolios
+* organiser leurs images
+* travailler avec plusieurs clients
+* gérer leur planning
+
+Le tout dans une **interface rapide, moderne et optimisée pour mobile**.
